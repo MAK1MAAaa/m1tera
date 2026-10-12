@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "The local UI may receive agent events and select a workspace. Runtime process control stays in Rust.",
+  "windows": ["main"],
+  "permissions": ["core:default", "dialog:allow-open"]
+}

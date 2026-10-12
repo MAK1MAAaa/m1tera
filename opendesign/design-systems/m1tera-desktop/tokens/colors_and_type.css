@@ -1,0 +1,62 @@
+:root {
+  --fg-1: #202020;
+  --fg-2: #5f5f5f;
+  --fg-3: #8a8a8a;
+  --bg-1: #ffffff;
+  --bg-2: #f7f7f7;
+  --bg-3: #ededed;
+  --border-1: #e8e8e8;
+  --border-2: #d5d5d5;
+  --accent-1: #2d2d2d;
+  --accent-2: #e3eee8;
+  --success-1: #397454;
+  --warning-1: #946b26;
+  --danger-1: #af3b37;
+
+  --font-sans: "DM Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --type-11: 11px;
+  --type-12: 12px;
+  --type-13: 13px;
+  --type-14: 14px;
+  --type-15: 15px;
+  --type-20: 20px;
+  --type-28: 28px;
+
+  --surface-primary: var(--bg-1);
+  --surface-sidebar: var(--bg-2);
+  --surface-hover: var(--bg-3);
+  --text-primary: var(--fg-1);
+  --text-secondary: var(--fg-2);
+  --text-tertiary: var(--fg-3);
+  --border-subtle: var(--border-1);
+  --border-control: var(--border-2);
+  --action-primary: var(--accent-1);
+  --status-success: var(--success-1);
+  --status-warning: var(--warning-1);
+  --status-danger: var(--danger-1);
+  --h1: var(--type-28);
+  --h2: var(--type-20);
+  --body: var(--type-14);
+  --caption: var(--type-12);
+  --navigation: var(--type-13);
+  --code: var(--type-13);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --radius-composer: 20px;
+  --shadow-popover: 0 10px 40px #00000014, 0 2px 8px #00000008;
+  --motion-fast: 120ms;
+  --motion-regular: 180ms;
+  --ease-standard: cubic-bezier(.2, .8, .2, 1);
+}

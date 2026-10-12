@@ -1,0 +1,107 @@
+{
+  "model": "gpt-6.1-sol",
+  "connection": "chatgpt",
+  "prompt": "只回复 OK，不调用工具。",
+  "note": "Successful 0/4/20 measurements come from two attempts. The earlier summary was captured from an observed report before the application replaced its latest-report file; latestAttempt is copied from that file without changes.",
+  "earlierObservedAttempt": {
+    "measuredAt": "2026-10-12T07:54:39.355Z",
+    "cases": [
+      {
+        "toolCount": 0,
+        "estimateTotal": 80,
+        "usage": {
+          "input": 49,
+          "output": 5,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalInput": 49,
+          "source": "provider"
+        },
+        "elapsedMs": 5837
+      },
+      {
+        "toolCount": 4,
+        "estimateTotal": 374,
+        "usage": {
+          "input": 237,
+          "output": 5,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalInput": 237,
+          "source": "provider"
+        },
+        "elapsedMs": 4167
+      },
+      {
+        "toolCount": 20,
+        "estimateTotal": 1542,
+        "usage": null,
+        "elapsedMs": 7165,
+        "error": "模型请求失败或超时；未获得可核验 usage。"
+      }
+    ]
+  },
+  "latestAttempt": {
+    "model": "gpt-6.1-sol",
+    "connection": "chatgpt",
+    "prompt": "只回复 OK，不调用工具。",
+    "measuredAt": "2026-10-12T07:59:02.394Z",
+    "mode": "live",
+    "cases": [
+      {
+        "toolCount": 0,
+        "estimate": {
+          "system": 48,
+          "history": 32,
+          "tools": 0,
+          "total": 80,
+          "toolCount": 0,
+          "method": "o200k_base 分项估算，包含保守消息封装开销；实际模型 tokenizer 和服务商封装可能不同。实际 usage 仅首轮，含缓存输入。"
+        },
+        "usage": {
+          "input": 49,
+          "output": 5,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalInput": 49,
+          "source": "provider"
+        },
+        "elapsedMs": 5380
+      },
+      {
+        "toolCount": 4,
+        "estimate": {
+          "system": 48,
+          "history": 32,
+          "tools": 294,
+          "total": 374,
+          "toolCount": 4,
+          "method": "o200k_base 分项估算，包含保守消息封装开销；实际模型 tokenizer 和服务商封装可能不同。实际 usage 仅首轮，含缓存输入。"
+        },
+        "usage": null,
+        "elapsedMs": 1676,
+        "error": "模型请求失败或超时；未获得可核验 usage。"
+      },
+      {
+        "toolCount": 20,
+        "estimate": {
+          "system": 48,
+          "history": 32,
+          "tools": 1462,
+          "total": 1542,
+          "toolCount": 20,
+          "method": "o200k_base 分项估算，包含保守消息封装开销；实际模型 tokenizer 和服务商封装可能不同。实际 usage 仅首轮，含缓存输入。"
+        },
+        "usage": {
+          "input": 957,
+          "output": 5,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalInput": 957,
+          "source": "provider"
+        },
+        "elapsedMs": 6103
+      }
+    ]
+  }
+}

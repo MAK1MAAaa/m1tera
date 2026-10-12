@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>m1tera · Desktop workspace</title>
+  <link rel="stylesheet" href="../../design-systems/m1tera-desktop/tokens/colors_and_type.css">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; margin: 0; }
+    body { font-family: var(--font-sans); color: var(--text-primary); font-size: var(--body); background: var(--surface-primary); -webkit-font-smoothing: antialiased; }
+    button, input, textarea { font: inherit; color: inherit; }
+    button { border: 0; cursor: pointer; background: none; }
+    button:focus-visible, summary:focus-visible { outline: 2px solid #6c6c6c; outline-offset: 2px; }
+    button, input, textarea { -webkit-tap-highlight-color: transparent; }
+    input:focus, textarea:focus { outline: none; }
+    input:focus { border-color: #8b8b8b; }
+    button:disabled { opacity: .35; cursor: default; }
+    ::selection { background: #e0e0e0; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb { border-radius: 8px; background: #d7d7d7; }
+    .app { display: grid; grid-template-columns: 252px minmax(0, 1fr) 276px; height: 100%; min-height: 0; overflow: hidden; }
+    .app.context-hidden { grid-template-columns: 252px minmax(0, 1fr); }
+    .app.sidebar-hidden { grid-template-columns: minmax(0, 1fr) 276px; }
+    .app.sidebar-hidden.context-hidden { grid-template-columns: minmax(0, 1fr); }
+    .sidebar { background: var(--surface-sidebar); display: flex; flex-direction: column; min-height: 0; min-width: 0; border-right: 1px solid var(--border-subtle); }
+    .sidebar-hidden .sidebar, .context-hidden .context { display: none; }
+    .brand-row { height: 66px; flex-shrink: 0; display: flex; align-items: center; padding: 0 18px; gap: 9px; }
+    .mark { height: 24px; width: 24px; border-radius: 7px; background: #2a2a2a; color: white; font-family: Georgia, serif; font-size: 21px; font-weight: 700; text-align: center; line-height: 24px; padding-bottom: 3px; }
+    .brand-row strong { font-size: 15px; letter-spacing: -.5px; font-weight: 600; }
+    .icon-button { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 7px; color: #6e6e6e; font-size: 19px; }
+    .icon-button:hover, .flat:hover { background: #e9e9e9; }
+    .brand-row .icon-button { margin-left: auto; }
+    .new-chat { display: flex; gap: 10px; align-items: center; height: 37px; margin: 0 12px 16px; padding: 0 12px; text-align: left; border: 1px solid #dddddd; background: #fff; border-radius: 8px; font-size: 13px; }
+    .new-chat:hover { background: #f2f2f2; }
+    .new-chat .plus { font-size: 21px; line-height: 1; }
+    .new-chat kbd { margin-left: auto; font-size: 10px; color: #999; font-family: inherit; }
+    .sidebar-scroll { overflow-y: auto; min-height: 0; flex: 1; padding: 0 10px 18px; }
+    .group-title { font-size: 11px; color: #8a8a8a; display: flex; align-items: center; padding: 12px 12px 8px; gap: 8px; }
+    .group-title > button { margin-left: auto; color: #777; font-size: 17px; padding: 0 4px; }
+    .group-title .line { flex: 1; height: 1px; background: #e5e5e5; }
+    .row { height: 34px; display: flex; align-items: center; gap: 8px; border-radius: 7px; padding: 0 10px; margin: 1px 0; color: #686868; position: relative; }
+    .row:hover { background: #ededed; }
+    .row.selected { background: #e5e5e5; color: #252525; }
+    .row .session { flex: 1; min-width: 0; padding: 0; text-align: left; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 100%; }
+    .row .small-symbol { color: #8b8b8b; font-size: 12px; width: 12px; text-align: center; }
+    .row .more { font-size: 17px; width: 22px; height: 24px; line-height: 12px; border-radius: 4px; color: #767676; opacity: 0; }
+    .row:hover .more, .more:focus-visible { opacity: 1; }
+    .row .more:hover { background: #dcdcdc; }
+    .workspace { margin: 10px 0 5px; }
+    .workspace-head { display: flex; align-items: center; width: 100%; height: 32px; padding: 0 10px; gap: 7px; color: #303030; font-size: 12px; }
+    .workspace-head:hover { background: #ededed; border-radius: 7px; }
+    .caret { display: inline-block; transform: rotate(90deg); color: #999; font-size: 12px; transition: transform var(--motion-fast); }
+    .workspace.closed .caret { transform: rotate(0); }
+    .workspace.closed .workspace-content { display: none; }
+    .folder { width: 14px; height: 11px; border: 1px solid #9b9b9b; border-radius: 2px; position: relative; margin-right: 1px; }
+    .folder::before { content: ""; position: absolute; top: -4px; left: 0; width: 7px; height: 3px; border: 1px solid #9b9b9b; border-bottom: none; border-radius: 2px 2px 0 0; }
+    .workspace-head strong { font-weight: 500; }
+    .workspace-head .workspace-count { margin-left: auto; font-size: 10px; color: #aaa; }
+    .workspace-path { font: 10px var(--font-mono); color: #9b9b9b; margin: 1px 0 9px 40px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+    .category { font-size: 10px; color: #919191; padding: 9px 12px 5px 31px; display: flex; align-items: center; gap: 6px; }
+    .category > span:last-child { height: 1px; background: #e6e6e6; flex: 1; }
+    .workspace .row { padding-left: 30px; }
+    .add-workspace { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 11px; color: #818181; text-align: left; font-size: 12px; border-radius: 7px; }
+    .add-workspace:hover { background: #ececec; color: #333; }
+    .sidebar-footer { padding: 10px 12px 13px; border-top: 1px solid #e8e8e8; }
+    .account-row { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 7px; text-align: left; border-radius: 8px; }
+    .account-row:hover { background: #ededed; }
+    .avatar { height: 27px; width: 27px; border-radius: 50%; background: #dedede; color: #555; display: grid; place-items: center; font-size: 12px; }
+    .account-row strong { font-size: 12px; font-weight: 500; display: block; }
+    .account-row small { font-size: 10px; color: #909090; display: block; margin-top: 3px; }
+    .account-row > span:last-child { margin-left: auto; color: #929292; }
+    .chat { min-width: 0; min-height: 0; display: flex; flex-direction: column; position: relative; }
+    .chat-header { height: 60px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 28px; border-bottom: 1px solid #f1f1f1; }
+    .reopen-sidebar { display: none; }
+    .sidebar-hidden .reopen-sidebar { display: inline-flex; }
+    .breadcrumb { color: #969696; font-size: 12px; white-space: nowrap; }
+    .breadcrumb .slash { margin: 0 9px; color: #c3c3c3; }
+    .chat-header h1 { font-size: 13px; font-weight: 500; margin: 0; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+    .header-end { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .flat { display: inline-flex; gap: 6px; align-items: center; height: 30px; padding: 0 9px; border-radius: 7px; font-size: 11px; color: #737373; white-space: nowrap; }
+    .dot { width: 5px; height: 5px; border-radius: 50%; background: #559270; display: inline-block; }
+    .chat-scroll { min-height: 0; flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+    .conversation { width: min(100% - 64px, 720px); margin: 0 auto; padding: 36px 0 44px; }
+    .date { text-align: center; font-size: 10px; color: #b0b0b0; margin-bottom: 25px; }
+    .user-bubble { max-width: 86%; margin-left: auto; background: #f2f2f2; border-radius: 16px 16px 4px 16px; padding: 14px 18px; font-size: 14px; line-height: 1.8; }
+    .assistant { padding-top: 29px; }
+    .assistant-label { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 500; color: #858585; margin-bottom: 13px; }
+    .assistant-label .mark { width: 17px; height: 17px; line-height: 17px; font-size: 15px; border-radius: 5px; }
+    .assistant p { line-height: 1.9; font-size: 14px; margin: 0 0 15px; }
+    .assistant ul { margin: 0 0 22px; padding-left: 22px; font-size: 14px; line-height: 2; }
+    .assistant strong { font-weight: 600; }
+    .tool-result { border: 1px solid #e5e5e5; border-radius: 10px; margin: 17px 0; background: #fff; }
+    .tool-result summary { display: flex; cursor: pointer; padding: 12px 14px; align-items: center; gap: 10px; font-size: 12px; color: #555; }
+    .tool-result .check { color: #599674; }
+    .tool-result .filename { font-family: var(--font-mono); color: #888; font-size: 11px; }
+    .tool-result .complete { margin-left: auto; color: #9b9b9b; font-size: 10px; }
+    .tool-result pre { margin: 0; padding: 0 14px 14px; font: 11px/1.8 var(--font-mono); color: #777; white-space: pre-wrap; }
+    .assistant-actions { display: flex; gap: 5px; align-items: center; color: #aaa; font-size: 10px; margin-top: 16px; }
+    .assistant-actions button { padding: 4px 7px; color: #999; border-radius: 5px; font-size: 10px; }
+    .assistant-actions button:hover { color: #333; background: #f3f3f3; }
+    .empty { min-height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; padding-bottom: 32px; }
+    .empty h2 { font-size: 27px; letter-spacing: -.7px; font-weight: 500; margin: 12px 0; }
+    .empty p { color: #939393; font-size: 12px; }
+    .composer-area { flex-shrink: 0; padding: 12px 32px 18px; position: relative; }
+    .composer { width: min(100%, 760px); margin: 0 auto; border: 1px solid #dfdfdf; border-radius: var(--radius-composer); background: #fff; box-shadow: 0 3px 15px #00000003; }
+    .composer:focus-within { border-color: #bdbdbd; }
+    .composer textarea { display: block; resize: none; width: 100%; min-height: 73px; max-height: 150px; border: 0; background: none; padding: 18px 20px 10px; font-size: 14px; line-height: 1.6; }
+    .composer textarea::placeholder { color: #a3a3a3; }
+    .composer-bottom { display: flex; align-items: center; gap: 2px; padding: 0 12px 11px; }
+    .composer-picker { font-size: 11px; color: #727272; display: flex; align-items: center; gap: 7px; padding: 7px 8px; height: 30px; border-radius: 7px; }
+    .composer-picker:hover { background: #f3f3f3; }
+    .composer-picker.auto { color: var(--status-warning); }
+    .picker-chevron { font-size: 11px; color: #a4a4a4; }
+    .composer-bottom .divider { height: 12px; width: 1px; background: #e7e7e7; margin: 0 5px; }
+    .send { background: #292929; color: white; width: 30px; height: 30px; border-radius: 50%; margin-left: auto; font-size: 19px; line-height: 1; }
+    .send:hover { background: #555; }
+    .composer-note { width: min(100%, 760px); margin: 10px auto 0; display: flex; justify-content: space-between; font-size: 10px; color: #a7a7a7; }
+    .context { min-height: 0; overflow-y: auto; background: #fbfbfb; border-left: 1px solid var(--border-subtle); }
+    .context-header { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 19px; border-bottom: 1px solid #ededed; font-size: 12px; color: #636363; }
+    .context-section { margin: 0 21px; padding: 25px 0; border-bottom: 1px solid #e9e9e9; }
+    .section-heading { font-size: 11px; color: #8a8a8a; display: flex; justify-content: space-between; align-items: center; }
+    .section-heading span { font-size: 9px; color: #ababab; }
+    .token-total { font-size: 30px; letter-spacing: -1px; font-weight: 500; margin: 10px 0 19px; }
+    .token-total small { font-size: 11px; letter-spacing: 0; font-weight: 400; color: #a4a4a4; margin-left: 6px; }
+    .token-bar { height: 4px; border-radius: 4px; display: flex; overflow: hidden; gap: 2px; background: #ececec; margin-bottom: 18px; }
+    .token-bar span { background: #5f5f5f; }
+    .token-bar span:last-child { background: #c5c5c5; }
+    dl { margin: 0; }
+    dl > div { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 11px; }
+    dt { color: #8b8b8b; }
+    dd { margin: 0; font-variant-numeric: tabular-nums; color: #6e6e6e; }
+    .panel-note { font-size: 10px; color: #aaa; line-height: 1.8; margin: 13px 0 0; }
+    .tool-state { display: flex; align-items: center; gap: 7px; color: #666; font-size: 11px; margin-top: 17px; }
+    .context .outline { border: 1px solid #dfdfdf; border-radius: 7px; width: 100%; margin-top: 16px; height: 32px; font-size: 11px; color: #737373; background: #fff; }
+    .context .outline:hover { background: #f4f4f4; }
+    .context-footnote { padding: 20px 21px; font-size: 10px; color: #aaa; line-height: 1.8; }
+    .overlay { position: fixed; inset: 0; z-index: 40; display: none; }
+    .overlay.show { display: block; }
+    .popover { position: fixed; z-index: 41; width: 290px; background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 6px; box-shadow: var(--shadow-popover); display: none; }
+    .popover.show { display: block; }
+    .popover-title { color: #999; font-size: 10px; padding: 9px 10px 7px; }
+    .option { display: flex; align-items: center; gap: 10px; text-align: left; width: 100%; border-radius: 7px; padding: 10px; }
+    .option:hover { background: #f4f4f4; }
+    .option strong { display: block; font-size: 12px; font-weight: 500; }
+    .option small { display: block; font-size: 10px; color: #a0a0a0; line-height: 1.6; margin-top: 3px; }
+    .option .tick { margin-left: auto; color: #333; font-size: 12px; }
+    .popover-line { height: 1px; background: #ededed; margin: 4px 5px; }
+    .context-menu { width: 182px; }
+    .context-menu .option { padding: 9px 10px; font-size: 11px; }
+    .danger { color: #ad4945; }
+    .modal-backdrop { position: fixed; inset: 0; background: #00000020; z-index: 60; display: none; align-items: center; justify-content: center; padding: 24px; }
+    .modal-backdrop.show { display: flex; }
+    .dialog { background: #fff; border: 1px solid #e4e4e4; border-radius: 16px; width: 440px; box-shadow: 0 20px 60px #00000014; padding: 25px; max-height: calc(100dvh - 48px); overflow-y: auto; }
+    .dialog h2 { margin: 0 0 8px; font-size: 18px; font-weight: 500; }
+    .dialog p { color: #999; font-size: 12px; line-height: 1.8; }
+    .dialog label { display: block; font-size: 11px; color: #777; margin-top: 20px; }
+    .dialog input { display: block; width: 100%; height: 38px; padding: 0 12px; margin-top: 8px; border: 1px solid #dcdcdc; border-radius: 7px; font-size: 12px; background: #fff; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+    .dialog-actions button { font-size: 12px; height: 34px; border-radius: 7px; padding: 0 15px; border: 1px solid #ddd; }
+    .dialog-actions .primary { background: #292929; border-color: #292929; color: #fff; }
+    .toast { position: fixed; left: 50%; bottom: 23px; transform: translate(-50%, 15px); opacity: 0; pointer-events: none; background: #303030; color: white; font-size: 12px; padding: 11px 17px; border-radius: 9px; transition: all var(--motion-regular); z-index: 80; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    @media (max-width: 1150px) { .app { grid-template-columns: 232px minmax(0, 1fr) 252px; } .app.context-hidden { grid-template-columns: 232px minmax(0, 1fr); } .chat-header { padding: 0 22px; } .breadcrumb { display: none; } .composer-bottom .divider { margin: 0 2px; } .composer-picker { padding: 7px 6px; } }
+    @media (max-width: 960px) { .app { grid-template-columns: 220px minmax(0, 1fr); } .context { display: none; } .app.context-hidden { grid-template-columns: 220px minmax(0, 1fr); } .app.sidebar-hidden { grid-template-columns: minmax(0, 1fr); } .composer-area { padding: 12px 22px 16px; } .conversation { width: calc(100% - 44px); } .composer-note span:last-child { display: block; } .tool-picker { display: none; } }
+    @media (max-width: 650px) { .sidebar { display: none; } .app, .app.context-hidden { grid-template-columns: minmax(0, 1fr); } .reopen-sidebar { display: inline-flex; } .header-end .connected { display: none; } .chat-header { padding: 0 16px; } .composer-area { padding: 10px 14px 14px; } .conversation { width: calc(100% - 32px); } .composer-picker { font-size: 10px; padding: 6px; } .composer .divider { margin: 0; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <aside class="sidebar" aria-label="会话导航">
+      <div class="brand-row"><span class="mark">m</span><strong>m1tera</strong><button class="icon-button" id="hideSidebar" aria-label="收起侧栏" title="收起侧栏">‹</button></div>
+      <button class="new-chat" id="newChat"><span class="plus">+</span>新会话<kbd>⌘ N</kbd></button>
+      <div class="sidebar-scroll">
+        <div class="group-title">置顶<span class="line"></span></div>
+        <div id="pinnedSessions"></div>
+        <div class="group-title">工作区<span class="line"></span><button id="addWorkspaceSmall" aria-label="添加工作区">+</button></div>
+        <div id="workspaceList"></div>
+        <button class="add-workspace" id="addWorkspace"><span>+</span>添加工作区</button>
+        <div class="group-title">个人会话<span class="line"></span></div>
+        <div id="personalSessions"></div>
+      </div>
+      <footer class="sidebar-footer"><button class="account-row" id="settingsButton"><span class="avatar">M</span><span><strong>个人空间</strong><small>会话保存在本机</small></span><span>···</span></button></footer>
+    </aside>
+    <main class="chat">
+      <header class="chat-header">
+        <button class="icon-button reopen-sidebar" id="showSidebar" aria-label="展开侧栏">›</button>
+        <span class="breadcrumb" id="breadcrumb">m1tera<span class="slash">/</span></span>
+        <h1 id="sessionTitle">优化 Agent 的上下文</h1>
+        <div class="header-end"><span class="flat connected"><i class="dot"></i>已连接</span><button class="flat" id="contextToggle" aria-pressed="true">上下文<span>≡</span></button></div>
+      </header>
+      <div class="chat-scroll" id="chatScroll">
+        <div class="conversation" id="conversation">
+          <div class="date">今天 15:42</div>
+          <div class="user-bubble">先看看目前的系统提示词和工具定义，帮我找出可以减少首轮上下文占用的部分。</div>
+          <article class="assistant"><div class="assistant-label"><span class="mark">m</span>m1tera</div>
+            <p>可以从两个直接影响输入量的地方开始：</p>
+            <ul><li><strong>系统提示词</strong>只保留稳定的行为要求，将任务说明留在当前消息里。</li><li><strong>工具定义</strong>按会话启用；当前任务只需要读取文件，不加载写入和终端工具。</li></ul>
+            <details class="tool-result"><summary><span class="check">✓</span><span>读取文件</span><span class="filename">runtime/context.ts</span><span class="complete">完成</span><span>›</span></summary><pre>此处是设计参考的工具结果预览。
+真实应用只展示运行时返回的数据。</pre></details>
+            <p>工作区可以帮助你组织会话。选择工作区后，仍由你决定把哪些文件和工具带入请求。</p>
+            <p>右侧会持续区分<strong>预计输入</strong>和服务商返回的<strong>实际 usage</strong>，这样每次调整都有依据。</p>
+            <div class="assistant-actions"><button id="copyReply">复制</button><span>·</span><span>gpt-6.1-sol</span></div>
+          </article>
+        </div>
+      </div>
+      <div class="composer-area"><form class="composer" id="composer">
+        <textarea id="messageInput" aria-label="发送消息" placeholder="继续讨论，或描述一个新任务…" rows="2"></textarea>
+        <div class="composer-bottom">
+          <button class="composer-picker" id="modelPicker" type="button" aria-haspopup="menu"><span id="modelLabel">gpt-6.1-sol</span><span class="picker-chevron">⌄</span></button>
+          <span class="divider"></span>
+          <button class="composer-picker" id="approvalPicker" type="button" aria-haspopup="menu"><span id="approvalLabel">逐次审批</span><span class="picker-chevron">⌄</span></button>
+          <span class="divider"></span>
+          <button class="composer-picker tool-picker" id="toolPicker" type="button">1 个工具<span class="picker-chevron">⌄</span></button>
+          <button class="send" type="submit" aria-label="发送消息">↑</button>
+        </div>
+      </form><div class="composer-note"><span>Enter 发送 · Shift + Enter 换行</span><span>交互设计参考 · 演示数据</span></div></div>
+    </main>
+    <aside class="context" aria-label="上下文明细">
+      <header class="context-header"><span>上下文</span><button class="icon-button" id="closeContext" aria-label="收起上下文">×</button></header>
+      <section class="context-section"><div class="section-heading">预计输入<span>当前会话</span></div><div class="token-total">374<small>tokens</small></div><div class="token-bar"><span style="width: 14%;"></span><span style="width: 76%; background: #979797;"></span><span style="flex: 1;"></span></div><dl><div><dt>系统提示词</dt><dd>48</dd></div><div><dt>工具定义</dt><dd>294</dd></div><div><dt>消息与历史</dt><dd>32</dd></div></dl><p class="panel-note">估算与实际计数可能不同。<br>这些数字用于界面演示。</p></section>
+      <section class="context-section"><div class="section-heading">实际输入<span>最近一轮</span></div><div class="token-total">237<small>tokens</small></div><dl><div><dt>未缓存输入</dt><dd>237</dd></div><div><dt>缓存读取</dt><dd>0</dd></div><div><dt>缓存写入</dt><dd>0</dd></div><div><dt>输出</dt><dd>5</dd></div></dl><p class="panel-note">缓存输入仍占用上下文。<br>服务商未返回计数时显示“未知”。</p></section>
+      <section class="context-section"><div class="section-heading">当前能力<span>显式启用</span></div><div class="tool-state"><span>✓</span>读取文件</div><p class="panel-note">工作区用于组织与限制文件访问。<br>不自动加载项目指令、技能或记忆。</p><button class="outline" id="contextTools">管理工具</button></section>
+      <section class="context-section"><div class="section-heading">首轮基线</div><p class="panel-note">对比不同工具数量的实际输入量。</p><button class="outline" id="baseline">测量首轮基线</button></section>
+      <p class="context-footnote">优化每次请求的上下文。<br>让应用能力按任务展开。</p>
+    </aside>
+  </div>
+  <div class="overlay" id="overlay"></div>
+  <div class="popover" id="modelMenu" role="menu" aria-label="选择模型"></div>
+  <div class="popover" id="approvalMenu" role="menu" aria-label="选择审批模式"></div>
+  <div class="popover context-menu" id="sessionMenu" role="menu" aria-label="会话操作"></div>
+  <div class="modal-backdrop" id="modalBackdrop"><section class="dialog" id="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle"></section></div>
+  <div class="toast" id="toast" role="status"></div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const escapeHTML = (text) => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+    let model = 'gpt-6.1-sol';
+    let approval = 'manual';
+    let selected = 'context';
+    let menuSession = null;
+    let toastTimer;
+    let enabledTools = ['read_file'];
+    const sessionTools = { context: ['read_file'] };
+    const originalConversation = $('conversation').innerHTML;
+    const workspaces = [{ id: 'm1tera', name: 'm1tera', path: '~/Desktop/code/m1tera', closed: false }, { id: 'notes', name: 'notes', path: '~/Documents/notes', closed: false }];
+    const sessions = [
+      { id: 'context', title: '优化 Agent 的上下文', workspace: 'm1tera', category: '开发', pinned: true },
+      { id: 'desktop', title: '桌面界面的下一步', workspace: 'm1tera', category: '开发', pinned: false },
+      { id: 'release', title: '整理发布检查清单', workspace: 'm1tera', category: '计划', pinned: false },
+      { id: 'reading', title: '阅读与研究笔记', workspace: 'notes', category: '', pinned: false },
+      { id: 'weekly', title: '这周的安排', workspace: '', category: '', pinned: false },
+      { id: 'questions', title: '一些想法', workspace: '', category: '', pinned: false }
+    ];
+    function row(session) {
+      return `<div class="row ${selected === session.id ? 'selected' : ''}"><span class="small-symbol">${session.pinned ? '·' : ''}</span><button class="session" data-select="${session.id}">${escapeHTML(session.title)}</button><button class="more" data-menu="${session.id}" aria-label="${escapeHTML(session.title)}的操作">···</button></div>`;
+    }
+    function renderNavigation() {
+      $('pinnedSessions').innerHTML = sessions.filter((session) => session.pinned).map(row).join('') || '<div class="workspace-path" style="margin-left: 12px;">暂无置顶会话</div>';
+      $('workspaceList').innerHTML = workspaces.map((workspace) => {
+        const group = sessions.filter((session) => session.workspace === workspace.id && !session.pinned);
+        const categories = [...new Set(group.map((session) => session.category))];
+        return `<section class="workspace ${workspace.closed ? 'closed' : ''}"><button class="workspace-head" data-workspace="${workspace.id}" aria-expanded="${!workspace.closed}"><span class="caret">›</span><span class="folder"></span><strong>${escapeHTML(workspace.name)}</strong><span class="workspace-count">${sessions.filter((session) => session.workspace === workspace.id).length}</span></button><div class="workspace-content"><div class="workspace-path" title="${escapeHTML(workspace.path)}">${escapeHTML(workspace.path)}</div>${categories.map((category) => `${category ? `<div class="category">${escapeHTML(category)}<span></span></div>` : ''}${group.filter((session) => session.category === category).map(row).join('')}`).join('')}</div></section>`;
+      }).join('');
+      $('personalSessions').innerHTML = sessions.filter((session) => !session.workspace && !session.pinned).map(row).join('');
+      document.querySelectorAll('[data-select]').forEach((button) => button.onclick = () => selectSession(button.dataset.select));
+      document.querySelectorAll('[data-menu]').forEach((button) => button.onclick = () => openSessionMenu(button.dataset.menu, button));
+      document.querySelectorAll('[data-workspace]').forEach((button) => button.onclick = () => { const workspace = workspaces.find((item) => item.id === button.dataset.workspace); workspace.closed = !workspace.closed; renderNavigation(); });
+    }
+    function selectSession(id) {
+      selected = id;
+      const session = sessions.find((item) => item.id === id);
+      $('sessionTitle').textContent = session.title;
+      const workspace = workspaces.find((item) => item.id === session.workspace);
+      $('breadcrumb').innerHTML = `${escapeHTML(workspace?.name || '个人空间')}<span class="slash">/</span>`;
+      enabledTools = sessionTools[id] || [];
+      $('toolPicker').innerHTML = `${enabledTools.length ? `${enabledTools.length} 个工具` : '无工具'}<span class="picker-chevron">⌄</span>`;
+      $('conversation').innerHTML = id === 'context' ? originalConversation : `<div class="empty"><span class="mark">m</span><h2>从这里开始。</h2><p>${workspace ? escapeHTML(workspace.name) : '个人空间'} · 只带入你需要的上下文</p></div>`;
+      if ($('copyReply')) $('copyReply').onclick = () => toast('设计参考：复制回复');
+      renderNavigation();
+      closePopovers();
+    }
+    function closePopovers() { $('overlay').classList.remove('show'); document.querySelectorAll('.popover').forEach((menu) => menu.classList.remove('show')); }
+    function openPopover(menu, anchor) {
+      const already = menu.classList.contains('show');
+      closePopovers();
+      if (already) return;
+      $('overlay').classList.add('show');
+      menu.classList.add('show');
+      const rect = anchor.getBoundingClientRect();
+      const width = menu.offsetWidth;
+      const height = menu.offsetHeight;
+      menu.style.left = `${Math.max(8, Math.min(rect.left, innerWidth - width - 8))}px`;
+      menu.style.top = `${Math.max(8, rect.top - height - 8)}px`;
+    }
+    function toast(text) { clearTimeout(toastTimer); $('toast').textContent = text; $('toast').classList.add('show'); toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2500); }
+    function showDialog(title, description, label, value, onSave, submitLabel = '保存') {
+      closePopovers();
+      $('dialog').innerHTML = `<h2 id="dialogTitle">${escapeHTML(title)}</h2><p>${escapeHTML(description)}</p><form id="dialogForm"><label>${escapeHTML(label)}<input id="dialogInput" value="${escapeHTML(value)}" required></label><div class="dialog-actions"><button id="cancelDialog" type="button">取消</button><button class="primary" type="submit">${submitLabel}</button></div></form>`;
+      $('modalBackdrop').classList.add('show');
+      $('cancelDialog').onclick = () => $('modalBackdrop').classList.remove('show');
+      $('dialogForm').onsubmit = (event) => { event.preventDefault(); const value = $('dialogInput').value.trim(); if (!value) return; onSave(value); $('modalBackdrop').classList.remove('show'); };
+      setTimeout(() => $('dialogInput').focus(), 0);
+    }
+    function renderModels() {
+      const models = [['gpt-6.1-sol', '当前 ChatGPT 连接'], ['gpt-6-sol', '工作模型'], ['gpt-6-luna', '较轻任务']];
+      $('modelMenu').innerHTML = '<div class="popover-title">模型 · 演示列表</div>' + models.map(([id, detail]) => `<button class="option" role="menuitemradio" aria-checked="${model === id}" data-model="${id}"><span><strong>${id}</strong><small>${detail}</small></span>${model === id ? '<span class="tick">✓</span>' : ''}</button>`).join('') + '<div class="popover-line"></div><button class="option" id="customModel"><span><strong>自定义模型</strong><small>用于已配置的兼容接口</small></span></button>';
+      document.querySelectorAll('[data-model]').forEach((button) => button.onclick = () => { model = button.dataset.model; $('modelLabel').textContent = model; closePopovers(); toast('模型将在下一次发送时使用'); });
+      $('customModel').onclick = () => showDialog('自定义模型', '参考页面不会连接或验证模型接口。', '模型名称', model, (value) => { model = value; $('modelLabel').textContent = value; toast('已更新演示模型'); });
+    }
+    function renderApproval() {
+      $('approvalMenu').innerHTML = '<div class="popover-title">工具审批</div>' + [['manual', '逐次审批', '写文件和执行命令前由你批准'], ['auto', '自动审批', '已启用工具自动执行，命令拥有当前用户权限']].map(([id, label, detail]) => `<button class="option" role="menuitemradio" aria-checked="${approval === id}" data-approval="${id}"><span><strong>${label}</strong><small>${detail}</small></span>${approval === id ? '<span class="tick">✓</span>' : ''}</button>`).join('');
+      document.querySelectorAll('[data-approval]').forEach((button) => button.onclick = () => { approval = button.dataset.approval; $('approvalLabel').textContent = approval === 'auto' ? '自动审批' : '逐次审批'; $('approvalPicker').classList.toggle('auto', approval === 'auto'); closePopovers(); toast(approval === 'auto' ? '自动审批已启用 · 仅对已启用工具生效' : '将逐次请求工具审批'); });
+    }
+    function openSessionMenu(id, anchor) {
+      menuSession = sessions.find((session) => session.id === id);
+      $('sessionMenu').innerHTML = `<button class="option" id="renameSession">改名</button><button class="option" id="pinSession">${menuSession.pinned ? '取消置顶' : '置顶'}</button><button class="option" id="categorizeSession">设置分类</button><button class="option" id="moveSession">移动到工作区</button><div class="popover-line"></div><button class="option danger" id="deleteSession">删除会话</button>`;
+      $('renameSession').onclick = () => showDialog('会话改名', '名称仅用于整理本机会话。', '会话名称', menuSession.title, (value) => { menuSession.title = value; if (selected === menuSession.id) $('sessionTitle').textContent = value; renderNavigation(); });
+      $('pinSession').onclick = () => { menuSession.pinned = !menuSession.pinned; renderNavigation(); closePopovers(); };
+      $('categorizeSession').onclick = () => showDialog('设置分类', '同一工作区内，相同分类的会话会放在一起。', '分类名称', menuSession.category || '开发', (value) => { menuSession.category = value; renderNavigation(); });
+      $('moveSession').onclick = () => { closePopovers(); $('dialog').innerHTML = '<h2 id="dialogTitle">移动到工作区</h2><p>会话内容不会因此自动加载文件。</p>' + [...workspaces, { id: '', name: '个人空间' }].map((workspace) => `<button class="option" data-move="${workspace.id}"><strong>${escapeHTML(workspace.name)}</strong>${menuSession.workspace === workspace.id ? '<span class="tick">✓</span>' : ''}</button>`).join('') + '<div class="dialog-actions"><button id="cancelDialog">取消</button></div>'; $('modalBackdrop').classList.add('show'); $('cancelDialog').onclick = () => $('modalBackdrop').classList.remove('show'); document.querySelectorAll('[data-move]').forEach((button) => button.onclick = () => { menuSession.workspace = button.dataset.move; renderNavigation(); $('modalBackdrop').classList.remove('show'); }); };
+      $('deleteSession').onclick = () => { closePopovers(); $('dialog').innerHTML = '<h2 id="dialogTitle">删除这个会话？</h2><p>本地保存的消息将一并删除。此处仅删除演示状态。</p><div class="dialog-actions"><button id="cancelDialog">取消</button><button class="primary" id="confirmDelete">删除会话</button></div>'; $('modalBackdrop').classList.add('show'); $('cancelDialog').onclick = () => $('modalBackdrop').classList.remove('show'); $('confirmDelete').onclick = () => { sessions.splice(sessions.indexOf(menuSession), 1); if (selected === menuSession.id) selected = null; renderNavigation(); $('modalBackdrop').classList.remove('show'); toast('已删除演示会话'); }; };
+      openPopover($('sessionMenu'), anchor);
+    }
+    function addWorkspace() { showDialog('添加工作区', '选择目录用于组织会话，不会自动读取或发送文件。设计参考中请输入一个演示路径。', '工作区目录', '~/Desktop/code/new-project', (value) => { const name = value.replace(/\/$/, '').split('/').pop(); workspaces.push({ id: `workspace-${Date.now()}`, name, path: value, closed: false }); renderNavigation(); toast('已添加演示工作区'); }, '添加工作区'); }
+    $('addWorkspace').onclick = addWorkspace;
+    $('addWorkspaceSmall').onclick = addWorkspace;
+    $('newChat').onclick = () => { const session = { id: `session-${Date.now()}`, title: '新会话', workspace: sessions.find((item) => item.id === selected)?.workspace || '', category: '', pinned: false }; sessions.unshift(session); selectSession(session.id); $('toolPicker').innerHTML = '无工具<span class="picker-chevron">⌄</span>'; $('messageInput').focus(); };
+    $('contextToggle').onclick = () => { $('app').classList.toggle('context-hidden'); $('contextToggle').setAttribute('aria-pressed', String(!$('app').classList.contains('context-hidden'))); };
+    $('closeContext').onclick = () => { $('app').classList.add('context-hidden'); $('contextToggle').setAttribute('aria-pressed', 'false'); };
+    $('hideSidebar').onclick = () => $('app').classList.add('sidebar-hidden');
+    $('showSidebar').onclick = () => $('app').classList.remove('sidebar-hidden');
+    $('modelPicker').onclick = () => { renderModels(); openPopover($('modelMenu'), $('modelPicker')); };
+    $('approvalPicker').onclick = () => { renderApproval(); openPopover($('approvalMenu'), $('approvalPicker')); };
+    $('overlay').onclick = closePopovers;
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { closePopovers(); $('modalBackdrop').classList.remove('show'); } if ((event.metaKey || event.ctrlKey) && event.key === 'n') { event.preventDefault(); $('newChat').click(); } });
+    $('modalBackdrop').onclick = (event) => { if (event.target === $('modalBackdrop')) $('modalBackdrop').classList.remove('show'); };
+    function showTools() {
+      closePopovers();
+      $('dialog').innerHTML = '<h2 id="dialogTitle">会话工具</h2><p>工具能力与审批策略分开设置。只有显式启用的工具才发送定义。</p>' + [['list_directory', '列目录'], ['read_file', '读文件'], ['write_file', '写文件'], ['run_command', '执行命令']].map(([id, label]) => `<label style="display:flex;align-items:center;gap:10px;margin-top:12px;"><input class="toolCheckbox" type="checkbox" style="width:14px;height:14px;margin:0;" data-tool="${id}" ${enabledTools.includes(id) ? 'checked' : ''}>${label}</label>`).join('') + '<p>本参考不执行任何工具。</p><div class="dialog-actions"><button id="cancelDialog">取消</button><button class="primary" id="saveTools">保存</button></div>';
+      $('modalBackdrop').classList.add('show');
+      $('cancelDialog').onclick = () => $('modalBackdrop').classList.remove('show');
+      $('saveTools').onclick = () => {
+        enabledTools = [...document.querySelectorAll('.toolCheckbox:checked')].map((input) => input.dataset.tool);
+        sessionTools[selected] = [...enabledTools];
+        $('toolPicker').innerHTML = `${enabledTools.length ? `${enabledTools.length} 个工具` : '无工具'}<span class="picker-chevron">⌄</span>`;
+        $('modalBackdrop').classList.remove('show');
+        toast('已更新演示工具集');
+      };
+    }
+    $('toolPicker').onclick = showTools;
+    $('contextTools').onclick = showTools;
+    $('baseline').onclick = () => toast('真实基线测量请在桌面应用中执行');
+    $('settingsButton').onclick = () => showDialog('连接与上下文', '真实应用的设置支持 ChatGPT、兼容接口及自定义系统提示词。此参考不保存账号凭据。', '演示系统提示词', '准确、简洁地回答。按任务启用工具。', () => toast('已保存演示设置'));
+    $('copyReply').onclick = () => toast('设计参考：复制回复');
+    $('composer').onsubmit = (event) => { event.preventDefault(); const input = $('messageInput').value.trim(); if (!input) return; if ($('conversation').querySelector('.empty')) $('conversation').innerHTML = ''; $('conversation').insertAdjacentHTML('beforeend', `<div class="user-bubble" style="margin-top:28px;">${escapeHTML(input)}</div><article class="assistant"><div class="assistant-label"><span class="mark">m</span>m1tera</div><p>这是可交互的设计参考。真实消息会在桌面应用中发送到你选定的模型。</p></article>`); $('messageInput').value = ''; $('messageInput').style.height = ''; const container = $('chatScroll'); container.scrollTop = container.scrollHeight; };
+    $('messageInput').addEventListener('input', () => { const input = $('messageInput'); input.style.height = 'auto'; input.style.height = `${Math.min(input.scrollHeight, 150)}px`; });
+    $('messageInput').addEventListener('keydown', (event) => { if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); $('composer').requestSubmit(); } });
+    renderNavigation();
+  </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+{
+  "generated": "2026-10-12T10:24:22.138598+00:00",
+  "sections": [
+    {
+      "id": "mockups",
+      "label": "Mockups",
+      "groups": [
+        {
+          "slug": "desktop-v2",
+          "files": [
+            {
+              "label": "index.html",
+              "path": "mockups/desktop-v2/index.html"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "design-systems",
+      "label": "Design Systems",
+      "groups": [
+        {
+          "slug": "m1tera-desktop",
+          "files": [
+            {
+              "label": "README.md",
+              "path": "design-systems/m1tera-desktop/README.md"
+            },
+            {
+              "label": "SKILL.md",
+              "path": "design-systems/m1tera-desktop/SKILL.md"
+            },
+            {
+              "label": "tokens/colors_and_type.css",
+              "path": "design-systems/m1tera-desktop/tokens/colors_and_type.css"
+            },
+            {
+              "label": "ui-kit-desktop/components/Message.jsx",
+              "path": "design-systems/m1tera-desktop/ui-kit-desktop/components/Message.jsx"
+            },
+            {
+              "label": "ui-kit-desktop/index.html",
+              "path": "design-systems/m1tera-desktop/ui-kit-desktop/index.html"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

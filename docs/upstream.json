@@ -1,0 +1,20 @@
+{
+  "repository": "https://github.com/earendil-works/pi",
+  "tag": "v1.1.0",
+  "commit": "abe508e1b89912adde45528136c3221eb69acdd7",
+  "packages": [
+    {
+      "name": "@earendil-works/pi-agent-core",
+      "version": "1.1.0",
+      "integrity": "sha512-aX1KZomNCPmwYnXa3OivF3VYLJ+WPUkIJlEIZTgwdOZdY/+oToWTQ334WYpQeOz9POpiYFNMJLPwIhXQ4e48kg==",
+      "provenanceCommit": "abe508e1b89912adde45528136c3221eb69acdd7"
+    },
+    {
+      "name": "@earendil-works/pi-ai",
+      "version": "1.1.0",
+      "integrity": "sha512-1T7LAkc/5Bvc0v6w4vAGVdCrli0o/E0pEmYKTnixu95vSFArBjvbhS/G4ZwI0RUePgf0Imcu0VyqlM4EcXxqfw==",
+      "provenanceCommit": "abe508e1b89912adde45528136c3221eb69acdd7"
+    }
+  ],
+  "verification": "HTTPS npm provenance source/digest matched; no independent Sigstore signature verification"
+}

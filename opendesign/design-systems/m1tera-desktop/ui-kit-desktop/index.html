@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>m1tera · component reference</title>
+  <link rel="stylesheet" href="../tokens/colors_and_type.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: var(--font-sans); background: var(--surface-primary); color: var(--text-primary); margin: 0; padding: 36px; }
+    main { max-width: 720px; margin: auto; }
+    h1 { font-size: var(--h2); font-weight: 500; margin: 0 0 8px; }
+    p { font-size: var(--caption); color: var(--text-secondary); line-height: 1.8; }
+    h2 { font-size: var(--body); font-weight: 500; margin: 32px 0 18px; }
+    .message { margin: 26px 0; }
+    .message-label { color: var(--text-tertiary); font-size: var(--caption); display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .message-body { font-size: var(--body); line-height: 1.8; }
+    .message-user { margin-left: 15%; border-radius: 16px; background: var(--surface-sidebar); padding: 16px; }
+    .small-mark { width: 18px; height: 18px; border-radius: 5px; background: var(--action-primary); color: white; text-align: center; font-family: Georgia, serif; }
+    .tool-card { border: 1px solid var(--border-subtle); border-radius: var(--radius-control); }
+    .tool-card summary { display: flex; align-items: center; gap: 10px; padding: 14px; font-size: var(--caption); cursor: pointer; }
+    .tool-card-icon { color: var(--status-success); }
+    .tool-state { margin-left: auto; font-size: var(--type-11); color: var(--text-tertiary); }
+    .tool-card pre { font: var(--code)/1.8 var(--font-mono); padding: 0 14px 14px; color: var(--text-secondary); white-space: pre-wrap; }
+    .swatches { display: flex; gap: 12px; margin: 16px 0; }
+    .swatch { width: 90px; height: 62px; border: 1px solid var(--border-subtle); border-radius: 8px; font-size: 11px; padding: 10px; }
+    a { color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>m1tera · 组件参考</h1>
+    <p>以下消息与工具结果结构来自现有 Message 组件，视觉使用新版 token。工作区与会话组织属于授权的新功能，完整交互见 <a href="../../../mockups/desktop-v2/index.html">桌面参考</a>。</p>
+    <h2>基础表面</h2>
+    <div class="swatches"><div class="swatch" style="background:var(--surface-primary);">聊天区</div><div class="swatch" style="background:var(--surface-sidebar);">侧栏</div><div class="swatch" style="background:var(--surface-hover);">选中</div><div class="swatch" style="background:var(--action-primary);color:#fff;">主操作</div></div>
+    <h2>消息</h2>
+    <article class="message message-user"><div class="message-label">你</div><div class="message-body">帮我看看系统提示词是否还能精简。</div></article>
+    <article class="message message-assistant"><div class="message-label"><span class="small-mark">m</span>M1TERA</div><div class="message-body">当前提示词只需保留稳定行为要求，具体任务留在用户消息中。工具定义按会话启用。</div></article>
+    <h2>工具结果</h2>
+    <details class="tool-card tool-success"><summary><span class="tool-card-icon">✓</span><span>读文件</span><span class="tool-state">完成</span><span>›</span></summary><pre>此处是静态组件演示，不是模型执行结果。</pre></details>
+    <p>真实应用使用 lucide-react 图标；此静态参考使用文字状态，JSX 结构见 components/Message.jsx。</p>
+  </main>
+</body>
+</html>

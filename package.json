@@ -1,0 +1,63 @@
+{
+  "name": "m1tera",
+  "private": true,
+  "version": "0.3.0",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:desktop": "npm run build:runtime && npm run prepare:sidecar && vite --host 127.0.0.1 --port 3000 --strictPort",
+    "build": "tsc -b && vite build && npm run build:runtime",
+    "build:runtime": "tsc -p tsconfig.runtime.json",
+    "build:desktop": "npm run build && npm run prepare:sidecar",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "typecheck": "tsc -b && tsc -p tsconfig.runtime.json --noEmit",
+    "tauri": "node scripts/desktop.mjs",
+    "desktop:dev": "npm run tauri -- dev",
+    "desktop:build": "npm run tauri -- build",
+    "baseline": "tsx scripts/context-baseline.ts",
+    "test:e2e": "playwright test",
+    "preview": "vite preview",
+    "prepare:sidecar": "node scripts/prepare-sidecar.mjs",
+    "verify:upstream": "node scripts/verify-upstream.mjs"
+  },
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "1.1.0",
+    "@earendil-works/pi-ai": "1.1.0",
+    "@tauri-apps/api": "2.12.3",
+    "@tauri-apps/plugin-dialog": "2.8.2",
+    "js-tiktoken": "1.0.21",
+    "lucide-react": "0.562.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1",
+    "typebox": "1.3.27"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.2",
+    "@playwright/test": "1.64.0",
+    "@tauri-apps/cli": "2.12.2",
+    "@types/node": "24.10.4",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.1.2",
+    "autoprefixer": "10.4.23",
+    "eslint": "9.39.2",
+    "eslint-plugin-react-hooks": "7.0.1",
+    "eslint-plugin-react-refresh": "0.4.26",
+    "globals": "16.5.0",
+    "postcss": "8.5.6",
+    "tailwindcss": "3.4.19",
+    "tailwindcss-animate": "1.0.7",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.52.0",
+    "vite": "7.3.7",
+    "vitest": "5.0.3"
+  }
+}

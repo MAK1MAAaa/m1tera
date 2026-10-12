@@ -1,0 +1,48 @@
+{
+  "model": "gpt-6.1-sol",
+  "connection": "chatgpt",
+  "prompt": "只回复 OK，不调用工具。",
+  "measuredAt": "2026-10-12T06:33:48.883Z",
+  "mode": "estimate",
+  "cases": [
+    {
+      "toolCount": 0,
+      "estimate": {
+        "system": 40,
+        "tools": 0,
+        "history": 23,
+        "total": 63,
+        "toolCount": 0,
+        "method": "o200k_base 分项估算，包含保守消息封装开销；实际模型 tokenizer 和服务商封装可能不同。实际 usage 仅首轮，含缓存输入。"
+      },
+      "usage": null,
+      "elapsedMs": null
+    },
+    {
+      "toolCount": 4,
+      "estimate": {
+        "system": 40,
+        "tools": 266,
+        "history": 23,
+        "total": 329,
+        "toolCount": 4,
+        "method": "o200k_base 分项估算，包含保守消息封装开销；实际模型 tokenizer 和服务商封装可能不同。实际 usage 仅首轮，含缓存输入。"
+      },
+      "usage": null,
+      "elapsedMs": null
+    },
+    {
+      "toolCount": 20,
+      "estimate": {
+        "system": 40,
+        "tools": 1322,
+        "history": 23,
+        "total": 1385,
+        "toolCount": 20,
+        "method": "o200k_base 分项估算，包含保守消息封装开销；实际模型 tokenizer 和服务商封装可能不同。实际 usage 仅首轮，含缓存输入。"
+      },
+      "usage": null,
+      "elapsedMs": null
+    }
+  ]
+}
