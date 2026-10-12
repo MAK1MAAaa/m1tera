@@ -28,6 +28,7 @@ const METHODS: &[&str] = &[
     "auth.cancel",
     "auth.logout",
     "models.list",
+    "models.discover",
     "organization.get",
     "workspaces.create",
     "workspaces.rename",

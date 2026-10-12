@@ -1,12 +1,12 @@
 # m1tera desktop
 
-本规范将现有 m1tera 桌面界面整理为工作区驱动的产品，并记录 v0.3 的 composer、上下文圆环和按需 Skills 交互。交互层级参考用户提出的 Codex 方向；颜色、尺寸与布局是项目自有决策，没有使用或声称使用 Codex 官方 token。
+本规范将现有 m1tera 桌面界面整理为工作区驱动的产品，覆盖 v0.3 的 composer、上下文圆环和按需 Skills，以及 v0.4 的账号模型目录与多接口配置。交互层级参考用户提出的 Codex 方向；颜色、尺寸与布局是项目自有决策，没有使用或声称使用 Codex 官方 token。
 
 ## 文件
 
-- [SKILL.md](./SKILL.md)：可复用规范、组件映射、命令/文件/Skills 交互与上下文约束。
+- [SKILL.md](./SKILL.md)：可复用规范、组件映射、模型配置、命令/文件/Skills 交互与上下文约束。
 - [tokens/colors_and_type.css](./tokens/colors_and_type.css)：原始与语义 token。
-- [桌面交互参考](../../mockups/desktop-v2/index.html)：v0.2 的模型、审批、工作区、置顶、分类与改名历史参考；全部为演示状态，不表示 v0.3 行为已验证。
+- [桌面交互参考](../../mockups/desktop-v2/index.html)：v0.2 的模型、审批、工作区、置顶、分类与改名历史参考；全部为演示状态，不表示 v0.3/v0.4 行为已验证。
 - [组件参考](./ui-kit-desktop/index.html)：现有消息/工具结果结构与新版 token；对应 JSX 位于 `ui-kit-desktop/components/Message.jsx`。
 
 ## 已查阅的来源
@@ -14,11 +14,25 @@
 - 项目 `src/App.tsx`：现有导航、聊天、composer、上下文布局。
 - 项目 `src/App.css`、`src/index.css`：已有字体、m 标识、颜色与滚动规则。
 - 项目 `src/components/SettingsDialog.tsx`：真实模型连接、提示词与工具配置。
+- 项目 `src/components/ModelSettings.tsx`、`ModelPicker.tsx`：v0.4 的官方 OAuth、多接口编辑、模型勾选与按服务商选择。
+- 项目 `runtime/model-config.ts`、`chatgpt-auth.ts`、`service.ts`、`shared/protocol.ts`：账号目录协议、生命周期判断、配置迁移、凭据与目录隔离。
 - 项目 `src/components/ApprovalDialog.tsx`：真实审批语义。
 - 项目 `src/components/BaselinePanel.tsx`：真实估算与实测分离。
 - 项目 `src/components/Composer.tsx`、`ContextRing.tsx`、`SkillsDialog.tsx`：v0.3 输入候选、圆环与技能管理。
 - 项目 `runtime/service.ts`、`skills.ts`、`attachments.ts`、`hosted-web-search.ts`、`web-search.ts`：本轮上下文准备、只读计划、按需指令与搜索执行。
 - 用户要求：参考 Codex、模型选择、自动审批、固定窗口、会话组织、工作区，以及按需文件和 Skills。
+
+## v0.4 模型配置约束
+
+- 官方 ChatGPT OAuth 始终可见；当前账号通过 Bearer 请求 `GET https://api.openai.com/v1/models`，解析 `models[{slug, display_name, visibility}]`，只保留 `visibility = list` 并维持返回顺序。不回退全 Pi 静态目录；未登录或失败仅显示显式 sol 默认项或同账号最近缓存，标为未验证并警告。
+- 登录、目录发现与复选框启用独立。新发现和手动新增默认不勾选，只有已启用且未明确不可用的模型进入 composer；运行时拒绝未启用模型。停用、移除当前模型或删除接口后保留待重选状态，不自动换模型。
+- 自定义接口按 `/models` 的 `data[].id` 读取目录，以 `lifecycle`、`deprecated`、`shutdown_date` 等明确状态判断可用性；`created` 不用于猜测。已弃用、已停用及明确计划停用不可启用；计划停用不得描述为已经下架。
+- 最多 12 个自定义接口，各自配置名称、base URL、API key、Responses/Chat Completions 格式及最多 256 个模型配置。目录合法条目不按数量截断，响应仅限制为 1 MiB。手动 ID 可附显示名称与上下文上限，支持未列出的网关模型，明确显示未验证；不能绕过已知停用状态。
+- 密钥按服务商隔离且仅存内存：留空保留，显式清除复选框清除；URL 改变或删除接口清除 key，同 URL 改 API 格式保留。持久保存的是服务商名称/base URL/API 格式、模型 ID/来源/勾选状态和用户手工指定的名称/容量；旧单接口配置迁移为 `custom-default`，同名模型与容量缓存按服务商区分。
+- 新接口保存前的目录候选通过仅内存的 SHA256 密钥指纹与 URL 匹配后归入该接口的本次运行目录，保证同次运行保存后不丢发现结果；目录候选、key 和指纹不落盘。刷新失败保留已知名称/容量并降为未验证、显示警告；成功完整目录不含旧接口项时标为不可用，手动缺失项保留显式配置意图。
+- 实时目录元数据仅在内存中保留，退出后重连账号或配置 key 并重新拉取；不自动转为永久手动覆盖值，避免遮蔽未来容量更新。服务商配置与目录元数据不进入模型上下文。
+
+参考协议：[OpenAI 模型与推理](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)、[OpenAI 弃用说明](https://developers.openai.com/api/docs/deprecations)；多接口组织参考 [OpenCode providers](https://opencode.ai/docs/providers/)。本项目新 OAuth 目录发现尚未使用真实账号验收，当前只有 loopback/fixture 验证，不读取既有凭据。
 
 ## v0.3 使用约束
 
@@ -29,4 +43,4 @@
 - 自动匹配默认关闭。启用后提供简短技能目录与 `use_skill`，由模型按任务调用后加载指令；完整指令只保留在本轮工具链，后续请求将旧调用结果压成短标记，避免关闭自动匹配或停用后重新注入指令。不预先加载整个技能库，也不授予额外工具权限。选择工作区不自动读取项目指令、文件或记忆。
 - OAuth 凭据与 API key 仅保存在后端内存，退出后需要重新登录或配置。
 
-模型列表与自动审批能力最终以应用运行时协议为准，参考页面不连接真实账号、不执行工具。搜索协议与 citations 已通过 fixture 验证，DuckDuckGo 客户端搜索已使用应用相同的系统代理配置实测成功；真实 ChatGPT 账号原生搜索尚未验证。实际检查结果见 [v0.3 验证记录](../../../docs/validation-v3.md)，保留 [v0.2](../../../docs/validation-v2.md) 与 [v0.1](../../../docs/validation.md) 历史结果，不能用历史或演示状态替代新功能实测。
+模型列表与自动审批能力最终以应用运行时协议为准，参考页面不连接真实账号、不执行工具。搜索协议与 citations 已通过 fixture 验证，DuckDuckGo 客户端搜索已使用应用相同的系统代理配置实测成功；真实 ChatGPT 账号原生搜索尚未验证。当前检查结果见 [v0.4 验证记录](../../../docs/validation-v4.md)，保留 [v0.3](../../../docs/validation-v3.md)、[v0.2](../../../docs/validation-v2.md) 与 [v0.1](../../../docs/validation.md) 历史结果，不能用历史或演示状态替代新功能实测。

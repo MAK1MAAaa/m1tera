@@ -1,13 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
 import { DEFAULT_SETTINGS } from '../../shared/protocol';
-import type { ComposerDraft, Organization, RequestMap, RuntimeMethod, RuntimeEvent, Session, Settings, Skill, SkillDraft, SkillSummary } from '../../shared/protocol';
+import type { ComposerDraft, ConfiguredModel, ModelCatalog, ModelOption, Organization, RequestMap, RuntimeMethod, RuntimeEvent, Session, Settings, Skill, SkillDraft, SkillSummary } from '../../shared/protocol';
 import type { RuntimeClient } from '../../src/lib/runtime-client';
 
-async function mockRuntime(page: Page, longContent = false) {
-  await page.addInitScript(({ defaults, longContent }) => {
-    let settings: Settings = defaults;
+async function mockRuntime(page: Page, longContent = false, officialModelCount = 0) {
+  await page.addInitScript(({ defaults, longContent, officialModelCount }) => {
+    let settings: Settings = { ...defaults, providerId: 'chatgpt', chatgptModels: [
+      { id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol', enabled: true, source: 'endpoint' },
+      ...Array.from({ length: officialModelCount }, (_, index) => ({ id: `fixture-model-${index}`, name: `测试模型 ${index}`, enabled: false, source: 'endpoint' as const })),
+    ], customProviders: [] };
     let connected = false;
-    let savedKey = false;
+    const catalogs = new Map<string, ModelCatalog>();
     const listeners = new Set<(event: RuntimeEvent) => void>();
     const sessions: Session[] = [];
     const organization: Organization = { workspaces: [], categories: [] };
@@ -26,7 +29,35 @@ async function mockRuntime(page: Page, longContent = false) {
       const tools = (count + (draft.command === 'websearch' ? 1 : 0)) * 65;
       return { system, tools, history, total: system + tools + history, toolCount: count, method: 'test estimate', contextWindow: settings.connection === 'chatgpt' ? 272000 : settings.contextWindow ?? null, attachments, selectedSkills, skillTokens: selectedSkills * 35, attachmentTokens: attachments * 25 };
     };
-    const state: { pending?: { sessionId: string; id: string }; opened: number; key?: string; runStarts: (ComposerDraft & { sessionId: string })[]; externalUrls: string[]; importedPaths: string[]; previewRequests: (Partial<ComposerDraft> & { sessionId?: string })[]; sessions: Session[]; skills: Skill[]; emit: (event: RuntimeEvent) => void } = { opened: 0, runStarts: [], externalUrls: [], importedPaths: [], previewRequests: [], sessions, skills, emit };
+    const state: { pending?: { sessionId: string; id: string }; opened: number; key?: string; providerKeys: Record<string, string>; settings: Settings; failDiscoveries: boolean; discoveryRequests: Record<string, unknown>[]; runStarts: (ComposerDraft & { sessionId: string })[]; externalUrls: string[]; importedPaths: string[]; previewRequests: (Partial<ComposerDraft> & { sessionId?: string })[]; sessions: Session[]; skills: Skill[]; emit: (event: RuntimeEvent) => void } = { opened: 0, providerKeys: {}, settings, failDiscoveries: false, discoveryRequests: [], runStarts: [], externalUrls: [], importedPaths: [], previewRequests: [], sessions, skills, emit };
+    const officialModels = (): ModelOption[] => [
+      { id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol', contextWindow: 272000, reasoning: true, source: 'endpoint', availability: 'available' },
+      { id: 'gpt-6-sol', name: 'GPT-6 Sol', contextWindow: 272000, reasoning: true, source: 'endpoint', availability: 'available' },
+      { id: 'deprecated-model', name: '已弃用模型', source: 'endpoint', availability: 'unavailable', unavailableReason: '模型已弃用' },
+      { id: 'removed-model', name: '已移除模型', source: 'endpoint', availability: 'unavailable', unavailableReason: '模型已移除' },
+      ...Array.from({ length: officialModelCount }, (_, index): ModelOption => ({ id: `fixture-model-${index}`, name: `测试模型 ${index}`, source: 'endpoint', availability: 'available' })),
+    ];
+    const configuration = () => ({ settings: structuredClone(settings), hasApiKey: !!state.providerKeys[settings.providerId ?? ''],
+      providerStatus: (settings.customProviders ?? []).map((provider) => ({ id: provider.id, hasApiKey: !!state.providerKeys[provider.id] })), chatgpt: { connected, loginPending: false } });
+    const modelInventory = (): ModelOption[] => {
+      if (connected && !state.failDiscoveries) catalogs.set('chatgpt', { models: officialModels(), fetched: true });
+      const options: ModelOption[] = [];
+      const append = (providerId: string, providerName: string, configured: ConfiguredModel[], catalog?: ModelCatalog) => {
+        const directory = catalog?.models ?? [];
+        for (const id of new Set([...directory.map((model) => model.id), ...configured.map((model) => model.id)])) {
+          const saved = configured.find((model) => model.id === id);
+          const remote = directory.find((model) => model.id === id);
+          const missing = !!catalog?.fetched && !remote && (providerId === 'chatgpt' || saved?.source === 'endpoint');
+          const availability = missing ? 'unavailable' : remote?.availability ?? 'unverified';
+          options.push({ ...remote, id, name: saved?.name ?? remote?.name ?? id, providerId, providerName, source: remote?.source ?? 'configured',
+            contextWindow: saved?.contextWindow ?? remote?.contextWindow, availability, enabled: !!saved?.enabled && availability !== 'unavailable',
+            ...(missing ? { unavailableReason: '最新目录已移除此模型' } : {}) });
+        }
+      };
+      append('chatgpt', 'ChatGPT', settings.chatgptModels ?? [], catalogs.get('chatgpt') ?? { models: [{ id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol', contextWindow: 272000, source: 'catalog', availability: 'unverified' }], fetched: false });
+      for (const provider of settings.customProviders ?? []) append(provider.id, provider.name, provider.models, catalogs.get(provider.id));
+      return options;
+    };
     const summary = (session: Session) => ({ id: session.id, title: session.title, createdAt: session.createdAt, updatedAt: session.updatedAt, messageCount: session.messages.length, pinned: session.pinned, categoryId: session.categoryId, workspaceId: session.workspaceId, workspace: session.workspace, approvalMode: session.approvalMode, autoSkills: session.autoSkills });
     const skillSummary = (skill: Skill): SkillSummary => ({ id: skill.id, name: skill.name, description: skill.description, triggers: skill.triggers, enabled: skill.enabled, builtin: skill.builtin, updatedAt: skill.updatedAt });
     const client: RuntimeClient = {
@@ -40,12 +71,36 @@ async function mockRuntime(page: Page, longContent = false) {
         const p = params as Record<string, unknown>;
         let result: unknown;
         switch (method) {
-          case 'settings.get': result = { settings, hasApiKey: savedKey, chatgpt: { connected, loginPending: false } }; break;
-          case 'settings.set':
-            settings = p.settings as Settings;
-            if (p.apiKey !== undefined) { state.key = String(p.apiKey); savedKey = Boolean(state.key); }
-            result = { settings, hasApiKey: savedKey, chatgpt: { connected, loginPending: false } }; break;
-          case 'models.list': result = [{ id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol', contextWindow: 272000, source: 'catalog' }, { id: 'gpt-6-sol', name: 'GPT-6 Sol', contextWindow: 272000, source: 'catalog' }]; break;
+          case 'settings.get': result = configuration(); break;
+          case 'settings.set': {
+            const next = structuredClone(p.settings as Settings);
+            for (const id of Object.keys(state.providerKeys)) {
+              const previous = settings.customProviders?.find((provider) => provider.id === id);
+              const provider = next.customProviders?.find((item) => item.id === id);
+              if (!provider || previous?.baseUrl !== provider.baseUrl) { delete state.providerKeys[id]; catalogs.delete(id); }
+            }
+            settings = next; state.settings = settings;
+            const updates = p.providerApiKeys as Record<string, string> | undefined;
+            for (const [id, key] of Object.entries(updates ?? {})) { if (key) state.providerKeys[id] = key; else delete state.providerKeys[id]; }
+            if (p.apiKey !== undefined) { state.key = String(p.apiKey); if (state.key) state.providerKeys[settings.providerId!] = state.key; }
+            result = configuration(); break;
+          }
+          case 'models.list': result = modelInventory(); break;
+          case 'models.discover': {
+            state.discoveryRequests.push(structuredClone(p));
+            const providerId = String(p.providerId ?? settings.providerId ?? 'chatgpt');
+            if (state.failDiscoveries) { result = { models: [], fetched: false, warning: '模拟目录获取失败，现有配置已保留。' }; break; }
+            if (providerId === 'chatgpt') {
+              if (!connected) { result = { models: [], fetched: false, warning: '请先连接 ChatGPT。' }; break; }
+              const catalog: ModelCatalog = { models: officialModels(), fetched: true };
+              catalogs.set(providerId, catalog); result = structuredClone(catalog); break;
+            }
+            // No endpoint is contacted: this fixture represents an authenticated GET /models data response.
+            const data = [{ id: 'remote-model', name: '共享模型', context_window: 32768 }, { id: 'deprecated-model', name: '已弃用模型', status: 'deprecated' }, { id: 'removed-model', name: '已移除模型', status: 'removed' }];
+            const catalog: ModelCatalog = { fetched: true, models: data.map((model): ModelOption => ({ id: model.id, name: model.name, source: 'endpoint', contextWindow: model.context_window,
+              availability: model.status ? 'unavailable' : 'available', ...(model.status ? { unavailableReason: model.status === 'deprecated' ? '模型已弃用' : '模型已移除' } : {}) })) };
+            catalogs.set(providerId, catalog); result = structuredClone(catalog); break;
+          }
           case 'organization.get': result = structuredClone(organization); break;
           case 'workspaces.create': {
             let workspace = organization.workspaces.find((item) => item.path === p.path);
@@ -115,7 +170,7 @@ async function mockRuntime(page: Page, longContent = false) {
             result = { started: true }; break;
           case 'auth.status': result = { connected, loginPending: false }; break;
           case 'auth.cancel': result = { cancelled: true }; break;
-          case 'auth.logout': connected = false; emit({ type: 'auth.status', status: { connected, loginPending: false } }); result = { loggedOut: true }; break;
+          case 'auth.logout': connected = false; catalogs.delete('chatgpt'); emit({ type: 'auth.status', status: { connected, loginPending: false } }); result = { loggedOut: true }; break;
           case 'run.start': {
             state.runStarts.push(structuredClone(p as ComposerDraft & { sessionId: string }));
             if (p.text === '首次发送失败') throw new Error('模拟首次发送失败');
@@ -155,7 +210,7 @@ async function mockRuntime(page: Page, longContent = false) {
     };
     window.__M1TERA_RUNTIME__ = client;
     Object.defineProperty(window, '__M1TERA_TEST_STATE__', { value: state });
-  }, { defaults: DEFAULT_SETTINGS, longContent });
+  }, { defaults: DEFAULT_SETTINGS, longContent, officialModelCount });
 }
 
 async function login(page: Page) {
@@ -163,6 +218,32 @@ async function login(page: Page) {
   await page.getByRole('button', { name: 'Continue with ChatGPT', exact: true }).click();
   await expect(page.getByText('ChatGPT 已连接', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '保存设置', exact: true }).click();
+}
+
+async function openSettings(page: Page) {
+  await page.getByRole('button', { name: '设置', exact: true }).click();
+  return page.getByRole('dialog', { name: '设置', exact: true });
+}
+
+async function addCustomProvider(page: Page, name: string, baseUrl = 'https://mock-base-url.test/v1', apiKey = 'fixture-memory-key') {
+  const dialog = page.getByRole('dialog', { name: '设置', exact: true });
+  await dialog.getByRole('button', { name: '新增接口', exact: true }).click();
+  const editor = dialog.locator('.custom-provider-editor').last();
+  await editor.locator('input[name="providerName"]').fill(name);
+  await editor.locator('input[name="baseUrl"]').fill(baseUrl);
+  await editor.locator('input[name="apiKey"]').fill(apiKey);
+  await editor.locator('select[name="apiFormat"]').selectOption('chat-completions');
+  return editor;
+}
+
+async function addManualModel(page: Page, providerName: string, id: string, name?: string, contextWindow?: number) {
+  const provider = page.getByRole('region', { name: providerName, exact: true });
+  await provider.getByRole('button', { name: '手动添加模型', exact: true }).click();
+  await provider.locator('input[name="modelId"]').fill(id);
+  if (name) await provider.locator('input[name="modelName"]').fill(name);
+  if (contextWindow !== undefined) await provider.locator('input[name="contextWindow"]').fill(String(contextWindow));
+  await provider.getByRole('button', { name: '添加模型', exact: true }).click();
+  return provider.locator(`input[name^="enabledModel:"][name$=":${id}"]`);
 }
 
 test('browser preview never claims a running agent', async ({ page }) => {
@@ -206,11 +287,14 @@ test('per-session tools and write approval dialog', async ({ page }) => {
 
 test('model selection and automatic approval belong to the composer and current session', async ({ page }) => {
   await mockRuntime(page); await page.goto('/'); await login(page);
+  const settings = await openSettings(page);
+  await settings.locator('input[name="enabledModel:chatgpt:gpt-6-sol"]').check();
+  await settings.getByRole('button', { name: '保存设置', exact: true }).click();
   await page.getByRole('button', { name: '新建会话', exact: true }).click();
   await page.getByRole('button', { name: '选择模型', exact: true }).click();
   await page.getByRole('textbox', { name: '筛选模型' }).fill('gpt-6-sol');
   await page.getByRole('option', { name: /GPT-6 Sol/ }).click();
-  await expect(page.getByRole('button', { name: '选择模型', exact: true })).toContainText('gpt-6-sol');
+  await expect(page.getByRole('button', { name: '选择模型', exact: true })).toContainText('GPT-6 Sol');
   await page.getByRole('button', { name: '审批模式', exact: true }).click();
   await page.getByRole('button', { name: /自动审批 自动批准/ }).click();
   await expect(page.getByRole('button', { name: '审批模式', exact: true })).toContainText('自动审批');
@@ -310,7 +394,7 @@ test('settings keeps keyboard focus inside the dialog and restores it when close
   await expect(contextButton).toBeFocused();
 });
 
-test('dark theme model picker stays inside the minimum window', async ({ page }) => {
+test('dark theme model picker stays inside the minimum window', async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.setViewportSize({ width: 800, height: 600 });
   await mockRuntime(page); await page.goto('/');
@@ -322,7 +406,7 @@ test('dark theme model picker stays inside the minimum window', async ({ page })
   expect(bounds!.y).toBeGreaterThanOrEqual(0);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(800);
   expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(600);
-  await page.screenshot({ path: 'docs/screenshots/desktop-dark-model-picker-fixture.png' });
+  await page.screenshot({ path: testInfo.outputPath('desktop-dark-model-picker-fixture.png') });
   await page.keyboard.press('Escape');
   await expect(page.getByRole('listbox', { name: '可用模型' })).toHaveCount(0);
 });
@@ -351,20 +435,196 @@ test('context ring precedes send and explains estimated usage plus the current m
 
 test('unknown compatible context maximum stays unknown until explicitly configured', async ({ page }) => {
   await mockRuntime(page); await page.goto('/');
-  await page.getByRole('button', { name: '设置', exact: true }).click();
-  const settings = page.getByRole('dialog', { name: '设置', exact: true });
-  await settings.getByRole('combobox', { name: '连接方式' }).selectOption('compatible');
-  await settings.locator('input[name="model"]').fill('private-model');
-  await settings.locator('input[name="apiKey"]').fill('fixture-memory-key');
+  const settings = await openSettings(page);
+  await addCustomProvider(page, '私有接口');
+  await (await addManualModel(page, '私有接口', 'private-model')).check();
   await settings.getByRole('button', { name: '保存设置', exact: true }).click();
+  await page.getByRole('button', { name: '选择模型', exact: true }).click();
+  await page.getByRole('option', { name: /私有接口 · private-model/ }).click();
   const ring = page.getByRole('button', { name: /^上下文占用：/ });
   await expect(ring).toHaveAccessibleName(/\/ 未知 tokens/);
   await ring.hover();
   await expect(page.getByRole('tooltip')).toContainText('尚无法计算占用比例');
-  await page.getByRole('button', { name: '设置', exact: true }).click();
+  await openSettings(page);
+  await page.getByRole('button', { name: /私有接口 Chat Completions/ }).click();
+  await page.getByRole('button', { name: '编辑模型 private-model', exact: true }).click();
   await page.locator('input[name="contextWindow"]').fill('16384');
+  await page.getByRole('button', { name: '保存模型', exact: true }).click();
   await page.getByRole('button', { name: '保存设置', exact: true }).click();
   await expect(ring).toHaveAccessibleName(/\/ 16,384 tokens/);
+});
+
+test('disabling the current model disables Send without restoring it through picker refresh', async ({ page }) => {
+  await mockRuntime(page); await page.goto('/'); await login(page);
+  const input = page.getByRole('textbox', { name: '发送消息', exact: true });
+  await input.fill('禁用后的草稿');
+  const settings = await openSettings(page);
+  await expect(settings.locator('input[name="model"]')).not.toBeEditable();
+  await settings.locator('input[name="enabledModel:chatgpt:gpt-6.1-sol"]').uncheck();
+  await settings.getByRole('button', { name: '保存设置', exact: true }).click();
+  await expect(page.getByRole('button', { name: '发送消息', exact: true })).toBeDisabled();
+  await expect(input).toHaveValue('禁用后的草稿');
+  await page.getByRole('button', { name: '选择模型', exact: true }).click();
+  await expect(page.getByRole('option')).toHaveCount(0);
+  await page.getByRole('button', { name: '刷新模型列表', exact: true }).click();
+  await expect(page.getByRole('option')).toHaveCount(0);
+  await expect(page.getByText('请在设置中勾选启用模型', { exact: true })).toBeVisible();
+  const saved = await page.evaluate(() => (window as Window & { __M1TERA_TEST_STATE__: { settings: Settings } }).__M1TERA_TEST_STATE__.settings);
+  expect(saved.model).toBe('gpt-6.1-sol');
+  expect(saved.chatgptModels?.find((model) => model.id === 'gpt-6.1-sol')?.enabled).toBe(false);
+});
+
+test('official model checkboxes control picker options and refresh preserves a disabled model', async ({ page }) => {
+  await mockRuntime(page); await page.goto('/'); await login(page);
+  await page.getByRole('button', { name: '选择模型', exact: true }).click();
+  await expect(page.getByRole('option', { name: /GPT-6 Sol/ })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  let settings = await openSettings(page);
+  const checkbox = settings.locator('input[name="enabledModel:chatgpt:gpt-6-sol"]');
+  await expect(checkbox).not.toBeChecked();
+  await checkbox.check();
+  await settings.getByRole('button', { name: '保存设置', exact: true }).click();
+  await page.getByRole('button', { name: '选择模型', exact: true }).click();
+  await expect(page.getByRole('option', { name: /GPT-6 Sol/ })).toBeVisible();
+  await page.keyboard.press('Escape');
+  settings = await openSettings(page);
+  await settings.locator('input[name="enabledModel:chatgpt:gpt-6-sol"]').uncheck();
+  await settings.locator('.official-provider').getByRole('button', { name: '拉取模型列表', exact: true }).click();
+  await expect(settings.locator('input[name="enabledModel:chatgpt:gpt-6-sol"]')).not.toBeChecked();
+  await settings.getByRole('button', { name: '保存设置', exact: true }).click();
+  await page.getByRole('button', { name: '选择模型', exact: true }).click();
+  await page.getByRole('button', { name: '刷新模型列表', exact: true }).click();
+  await expect(page.getByRole('option', { name: /GPT-6 Sol/ })).toHaveCount(0);
+  await expect(page.getByRole('option', { name: /GPT-6.1 Sol/ })).toBeVisible();
+});
+
+test('a custom base URL key and manual model are selectable while official login remains visible', async ({ page }) => {
+  await mockRuntime(page); await page.goto('/');
+  const settings = await openSettings(page);
+  await addCustomProvider(page, '团队接口', 'https://mock-base-url.test/v1', 'custom-fixture-memory-key');
+  const model = await addManualModel(page, '团队接口', 'shared-model', '团队模型', 65536);
+  await expect(model).not.toBeChecked();
+  await model.check();
+  await expect(settings.getByRole('button', { name: 'Continue with ChatGPT', exact: true })).toBeVisible();
+  await settings.getByRole('button', { name: '保存设置', exact: true }).click();
+  await page.getByRole('button', { name: '选择模型', exact: true }).click();
+  await page.getByRole('option', { name: /团队模型 团队接口 · shared-model/ }).click();
+  await expect(page.getByRole('button', { name: '选择模型', exact: true })).toContainText('团队模型');
+  await page.getByRole('textbox', { name: '发送消息', exact: true }).fill('使用团队模型');
+  await expect(page.getByRole('button', { name: '发送消息', exact: true })).toBeEnabled();
+  const state = await page.evaluate(() => {
+    const state = (window as Window & { __M1TERA_TEST_STATE__: { settings: Settings; providerKeys: Record<string, string> } }).__M1TERA_TEST_STATE__;
+    return { settings: state.settings, keys: state.providerKeys };
+  });
+  expect(state.settings).toMatchObject({ connection: 'compatible', apiFormat: 'chat-completions', baseUrl: 'https://mock-base-url.test/v1', model: 'shared-model', contextWindow: 65536 });
+  expect(state.keys[state.settings.providerId!]).toBe('custom-fixture-memory-key');
+  expect(JSON.stringify(state.settings)).not.toContain('custom-fixture-memory-key');
+  expect(await page.evaluate(() => localStorage.length)).toBe(0);
+  const reopened = await openSettings(page);
+  await expect(reopened.getByRole('button', { name: 'Continue with ChatGPT', exact: true })).toBeVisible();
+  await reopened.getByRole('button', { name: /团队接口 Chat Completions/ }).click();
+  await expect(reopened.locator('input[name="apiKey"]')).toHaveValue('');
+  await expect(reopened.getByText('本次运行已配置，留空则保留', { exact: true })).toBeVisible();
+});
+
+test('discovered deprecated and removed models cannot be checked for either official or custom providers', async ({ page }) => {
+  await mockRuntime(page); await page.goto('/'); await login(page);
+  const settings = await openSettings(page);
+  await settings.locator('.official-provider').getByRole('button', { name: '拉取模型列表', exact: true }).click();
+  for (const id of ['deprecated-model', 'removed-model']) {
+    const checkbox = settings.locator(`input[name="enabledModel:chatgpt:${id}"]`);
+    await expect(checkbox).toBeDisabled();
+    await expect(checkbox).not.toBeChecked();
+  }
+  await addCustomProvider(page, '目录接口');
+  const provider = settings.getByRole('region', { name: '目录接口', exact: true });
+  await provider.getByRole('button', { name: '拉取模型列表', exact: true }).click();
+  for (const id of ['deprecated-model', 'removed-model']) {
+    await expect(provider.locator(`input[name^="enabledModel:"][name$=":${id}"]`)).toBeDisabled();
+  }
+  const remote = provider.locator('input[name^="enabledModel:"][name$=":remote-model"]');
+  await expect(remote).not.toBeChecked();
+  await remote.check();
+  await settings.getByRole('button', { name: '保存设置', exact: true }).click();
+  await page.getByRole('button', { name: '选择模型', exact: true }).click();
+  await expect(page.getByRole('option', { name: /已弃用模型|已移除模型/ })).toHaveCount(0);
+  await expect(page.getByRole('option', { name: /共享模型 目录接口 · remote-model/ })).toBeVisible();
+  const request = await page.evaluate(() => (window as Window & { __M1TERA_TEST_STATE__: { discoveryRequests: Record<string, unknown>[] } }).__M1TERA_TEST_STATE__.discoveryRequests.at(-1));
+  expect(request).toMatchObject({ baseUrl: 'https://mock-base-url.test/v1', apiKey: 'fixture-memory-key' });
+});
+
+test('a failed model fetch preserves provider fields a pending manual draft and already configured manual items', async ({ page }) => {
+  await mockRuntime(page); await page.goto('/');
+  const settings = await openSettings(page);
+  await addCustomProvider(page, '草稿接口', 'https://draft-mock.test/v1', 'draft-fixture-key');
+  await (await addManualModel(page, '草稿接口', 'manual-existing', '手工模型')).check();
+  const provider = settings.getByRole('region', { name: '草稿接口', exact: true });
+  await provider.getByRole('button', { name: '手动添加模型', exact: true }).click();
+  await provider.locator('input[name="modelId"]').fill('manual-pending');
+  await provider.locator('input[name="modelName"]').fill('尚未添加的模型');
+  await provider.locator('input[name="contextWindow"]').fill('16384');
+  await page.evaluate(() => { (window as Window & { __M1TERA_TEST_STATE__: { failDiscoveries: boolean } }).__M1TERA_TEST_STATE__.failDiscoveries = true; });
+  await provider.getByRole('button', { name: '拉取模型列表', exact: true }).click();
+  await expect(provider.getByRole('status')).toContainText('现有配置已保留');
+  await expect(provider.locator('input[name="providerName"]')).toHaveValue('草稿接口');
+  await expect(provider.locator('input[name="baseUrl"]')).toHaveValue('https://draft-mock.test/v1');
+  await expect(provider.locator('input[name="apiKey"]')).toHaveValue('draft-fixture-key');
+  await expect(provider.locator('input[name="modelId"]')).toHaveValue('manual-pending');
+  await expect(provider.locator('input[name="modelName"]')).toHaveValue('尚未添加的模型');
+  await expect(provider.locator('input[name="contextWindow"]')).toHaveValue('16384');
+  await expect(provider.locator('input[name^="enabledModel:"][name$=":manual-existing"]')).toBeChecked();
+  await provider.getByRole('button', { name: '添加模型', exact: true }).click();
+  await expect(provider.locator('input[name^="enabledModel:"][name$=":manual-pending"]')).not.toBeChecked();
+  await settings.getByRole('button', { name: '保存设置', exact: true }).click();
+  const saved = await page.evaluate(() => (window as Window & { __M1TERA_TEST_STATE__: { settings: Settings } }).__M1TERA_TEST_STATE__.settings);
+  expect(saved.customProviders?.[0].models).toEqual(expect.arrayContaining([
+    expect.objectContaining({ id: 'manual-existing', name: '手工模型', enabled: true, source: 'manual' }),
+    expect.objectContaining({ id: 'manual-pending', name: '尚未添加的模型', contextWindow: 16384, enabled: false, source: 'manual' }),
+  ]));
+});
+
+test('identically named model IDs stay distinct across two custom providers', async ({ page }) => {
+  await mockRuntime(page); await page.goto('/');
+  const settings = await openSettings(page);
+  for (const name of ['接口甲', '接口乙']) {
+    await addCustomProvider(page, name, `https://${name === '接口甲' ? 'alpha' : 'beta'}-mock.test/v1`);
+    await (await addManualModel(page, name, 'shared-model', '共享模型')).check();
+  }
+  await settings.getByRole('button', { name: '保存设置', exact: true }).click();
+  await page.getByRole('button', { name: '选择模型', exact: true }).click();
+  const first = page.getByRole('option', { name: /共享模型 接口甲 · shared-model/ });
+  const second = page.getByRole('option', { name: /共享模型 接口乙 · shared-model/ });
+  await expect(first).toBeVisible(); await expect(second).toBeVisible();
+  await first.click();
+  await expect(page.getByRole('button', { name: '选择模型', exact: true })).toContainText('接口甲 · 共享模型');
+  const firstId = await page.evaluate(() => (window as Window & { __M1TERA_TEST_STATE__: { settings: Settings } }).__M1TERA_TEST_STATE__.settings.providerId);
+  await page.getByRole('button', { name: '选择模型', exact: true }).click();
+  await second.click();
+  await expect(page.getByRole('button', { name: '选择模型', exact: true })).toContainText('接口乙 · 共享模型');
+  const secondId = await page.evaluate(() => (window as Window & { __M1TERA_TEST_STATE__: { settings: Settings } }).__M1TERA_TEST_STATE__.settings.providerId);
+  expect(secondId).not.toBe(firstId);
+});
+
+test('model lists scroll inside Settings while its footer stays fixed at the 800 by 600 minimum', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await mockRuntime(page, false, 40); await page.goto('/');
+  const settings = await openSettings(page);
+  const footer = settings.locator('.dialog-footer');
+  const before = await footer.boundingBox();
+  const layout = await settings.evaluate((element) => {
+    const list = element.querySelector('.official-provider .configured-model-list')!;
+    const scroll = element.querySelector('.settings-scroll')!;
+    list.scrollTop = list.scrollHeight;
+    scroll.scrollTop = scroll.scrollHeight;
+    return { listScrollable: list.scrollHeight > list.clientHeight, settingsScrollable: scroll.scrollHeight > scroll.clientHeight,
+      listOverflow: getComputedStyle(list).overflowY, windowScroll: window.scrollY, documentHeight: document.documentElement.scrollHeight };
+  });
+  expect(layout.listScrollable).toBe(true); expect(layout.settingsScrollable).toBe(true);
+  expect(layout.listOverflow).toBe('auto'); expect(layout.windowScroll).toBe(0); expect(layout.documentHeight).toBeLessThanOrEqual(600);
+  const after = await footer.boundingBox();
+  expect(after!.y).toBeCloseTo(before!.y, 1);
+  expect(after!.y + after!.height).toBeLessThanOrEqual(600);
+  await expect(settings.getByRole('button', { name: '保存设置', exact: true })).toBeInViewport();
 });
 
 test('slash pickers send structured plan and search commands for one turn and keep ordinary text intact', async ({ page }) => {

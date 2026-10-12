@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { Agent } from '@earendil-works/pi-agent-core';
@@ -8,7 +8,7 @@ import { streamSimple as streamResponses } from '@earendil-works/pi-ai/api/opena
 import { lazyStream } from '@earendil-works/pi-ai';
 import type { AssistantMessage, Model } from '@earendil-works/pi-ai';
 import { DEFAULT_SETTINGS, TOOL_NAMES } from '../shared/protocol.js';
-import type { Approval, ApprovalMode, BaselineReport, ComposerDraft, ContextEstimate, DisplayMessage, ModelOption, Organization, RuntimeEvent, RuntimeRequest, RuntimeResponse, Session, SessionSummary, Settings, Skill, TokenUsage, ToolName, Workspace } from '../shared/protocol.js';
+import type { Approval, ApprovalMode, BaselineReport, ComposerDraft, ContextEstimate, DisplayMessage, ModelCatalog, ModelOption, Organization, ProviderStatus, RequestMap, RuntimeEvent, RuntimeRequest, RuntimeResponse, Session, SessionSummary, Settings, Skill, TokenUsage, ToolName, Workspace } from '../shared/protocol.js';
 import { buildContext, buildModel, compactPastSkillResults, countEstimatedTokens, estimateContext, estimatePayload, providerUsage } from './context.js';
 import { repairToolChain, Storage } from './storage.js';
 import type { StoredSession } from './storage.js';
@@ -20,6 +20,7 @@ import { listWorkspaceFiles, readAttachments } from './attachments.js';
 import { createWebSearchTool } from './web-search.js';
 import { HOSTED_SEARCH_TOOL, observeHostedSearchFetch, safeSearchSource } from './hosted-web-search.js';
 import type { SearchSource } from './hosted-web-search.js';
+import { discoverCompatibleModels, normalizeModelSettings } from './model-config.js';
 
 interface Run {
   id: string;
@@ -64,6 +65,10 @@ export class RuntimeService {
   private readonly chatgpt: ChatGPTAuth;
   private readonly skills: SkillsStore;
   private readonly modelLimits = new Map<string, number>();
+  private readonly providerKeys = new Map<string, string>();
+  private readonly catalogs = new Map<string, { baseUrl: string; catalog: ModelCatalog }>();
+  private readonly catalogRequests = new Map<string, number>();
+  private readonly draftCatalogs = new Map<string, { baseUrl: string; credentialFingerprint: string; catalog: ModelCatalog }>();
   private settings: Settings = structuredClone(DEFAULT_SETTINGS);
   private organization: Organization = { workspaces: [], categories: [] };
   private mutationPending = Promise.resolve();
@@ -89,7 +94,7 @@ export class RuntimeService {
     await this.chatgpt.initialize();
     await this.skills.initialize();
     const settings = await this.storage.readSettings();
-    if (settings !== undefined) this.settings = validateSettings(settings);
+    this.settings = normalizeModelSettings(settings !== undefined ? validateSettings(settings) : this.settings);
     const organization = await this.storage.readOrganization();
     if (organization !== undefined) this.organization = validateOrganization(organization);
     for (const session of await this.storage.readSessions()) {
@@ -137,29 +142,54 @@ export class RuntimeService {
 
   private async dispatch(request: RuntimeRequest): Promise<unknown> {
     switch (request.method) {
-      case 'settings.get': return { settings: structuredClone(this.settings), hasApiKey: Boolean(this.apiKey), chatgpt: this.chatgpt.status() };
+      case 'settings.get': return this.configuration();
       case 'settings.set': {
-        const settings = validateSettings(request.params.settings);
+        const settings = normalizeModelSettings(validateSettings(request.params.settings), this.settings);
         if (request.params.apiKey !== undefined && typeof request.params.apiKey !== 'string') throw new RuntimeError('INVALID_PARAMS', 'API key 必须是字符串');
-        if (request.params.apiKey !== undefined) {
-          this.apiKey = request.params.apiKey;
-          if (this.apiKey) this.secrets.add(this.apiKey);
+        const nextKeys = new Map(this.providerKeys);
+        for (const previous of this.settings.customProviders ?? []) {
+          const next = settings.customProviders?.find((provider) => provider.id === previous.id);
+          if (!next || next.baseUrl !== previous.baseUrl) {
+            nextKeys.delete(previous.id);
+            this.invalidateCatalog(previous.id);
+            for (const key of this.modelLimits.keys()) if (key.startsWith(`${previous.id}\0`)) this.modelLimits.delete(key);
+            if (!next) this.draftCatalogs.delete(previous.id);
+          }
         }
-        if (settings.baseUrl !== this.settings.baseUrl || request.params.apiKey !== undefined) this.modelLimits.clear();
-        this.settings = settings;
+        const keys = request.params.providerApiKeys;
+        if (keys !== undefined && (!keys || typeof keys !== 'object' || Array.isArray(keys) || Object.keys(keys).length > 12)) throw new RuntimeError('INVALID_PARAMS', '接口密钥配置无效');
+        const updates = { ...(keys ?? {}), ...(request.params.apiKey !== undefined && settings.connection === 'compatible' ? { [settings.providerId!]: request.params.apiKey } : {}) };
+        for (const [id, key] of Object.entries(updates)) {
+          const provider = settings.customProviders?.find((item) => item.id === id);
+          if (!provider || typeof key !== 'string' || key.length > 4096 || /[\r\n\0]/.test(key)) throw new RuntimeError('INVALID_PARAMS', '接口密钥配置无效');
+          if (key) { nextKeys.set(id, key); this.secrets.add(key); } else nextKeys.delete(id);
+          this.invalidateCatalog(id);
+          for (const cached of this.modelLimits.keys()) if (cached.startsWith(`${provider.id}\0`)) this.modelLimits.delete(cached);
+        }
+        if (request.params.apiKey) this.secrets.add(request.params.apiKey);
         await this.storage.saveSettings(this.sanitize(settings));
-        return { settings: structuredClone(settings), hasApiKey: Boolean(this.apiKey), chatgpt: this.chatgpt.status() };
+        this.providerKeys.clear();
+        for (const [id, key] of nextKeys) this.providerKeys.set(id, key);
+        this.settings = settings;
+        this.apiKey = this.providerKeys.get(settings.providerId ?? '') ?? '';
+        for (const provider of settings.customProviders ?? []) {
+          const candidate = this.draftCatalogs.get(provider.id);
+          if (candidate && candidate.baseUrl === provider.baseUrl && candidate.credentialFingerprint === credentialFingerprint(this.providerKeys.get(provider.id))) this.cacheCatalog(provider.id, provider.baseUrl, candidate.catalog);
+        }
+        return this.configuration();
       }
       case 'auth.status': return this.chatgpt.status();
-      case 'auth.login': return this.chatgpt.startLogin();
+      case 'auth.login': this.invalidateCatalog('chatgpt'); return this.chatgpt.startLogin();
       case 'auth.respond': return this.chatgpt.respond(stringParam(request.params.promptId, 'promptId'), stringParam(request.params.value, 'value'));
-      case 'auth.cancel': return this.chatgpt.cancel();
+      case 'auth.cancel': this.invalidateCatalog('chatgpt'); return this.chatgpt.cancel();
       case 'auth.logout': {
+        this.invalidateCatalog('chatgpt');
         for (const run of this.runs.values()) if (run.connection === 'chatgpt') this.cancel(run);
         await this.chatgpt.logout();
         return { loggedOut: true };
       }
       case 'models.list': return this.listModels();
+      case 'models.discover': return this.discoverModels(request.params);
       case 'files.list': return listWorkspaceFiles(this.session(request.params.sessionId).workspace, request.params.query);
       case 'skills.list': return this.skills.list();
       case 'skills.get': return this.selectedSkill(request.params.skillId, false);
@@ -303,43 +333,95 @@ export class RuntimeService {
     return result;
   }
 
+  private configuration(): RequestMap['settings.get']['result'] {
+    const providerStatus: ProviderStatus[] = (this.settings.customProviders ?? []).map((provider) => ({ id: provider.id, hasApiKey: Boolean(this.providerKeys.get(provider.id)) }));
+    return { settings: structuredClone(this.settings), hasApiKey: Boolean(this.apiKey), chatgpt: this.chatgpt.status(), providerStatus };
+  }
+
+  private invalidateCatalog(id: string) {
+    this.catalogs.delete(id);
+    this.catalogRequests.set(id, (this.catalogRequests.get(id) ?? 0) + 1);
+  }
+
+  private cacheCatalog(id: string, baseUrl: string, result: ModelCatalog) {
+    let catalog = result;
+    if (!result.fetched) {
+      const previous = this.catalogs.get(id);
+      if (previous?.baseUrl === baseUrl) {
+        const models = previous.catalog.models.map((model): ModelOption => ({ ...model, availability: model.availability === 'unavailable' ? 'unavailable' : 'unverified' }));
+        const configured = id === 'chatgpt' ? this.settings.chatgptModels : this.settings.customProviders?.find((provider) => provider.id === id)?.models;
+        if (previous.catalog.fetched && previous.catalog.complete !== false) for (const model of configured ?? []) {
+          if (!models.some((item) => item.id === model.id) && (id === 'chatgpt' || model.source === 'endpoint')) models.push({ id: model.id, name: model.name ?? model.id, source: 'configured', availability: 'unavailable', unavailableReason: '上次成功目录已不再提供此模型' });
+        }
+        catalog = { ...result, models };
+      }
+    }
+    this.catalogs.set(id, { baseUrl, catalog });
+    if (catalog.fetched) {
+      for (const cached of this.modelLimits.keys()) if (cached.startsWith(`${id}\0`)) this.modelLimits.delete(cached);
+      for (const model of catalog.models) if (model.contextWindow && model.availability !== 'unavailable') this.modelLimits.set(`${id}\0${baseUrl}\0${model.id}`, model.contextWindow);
+    }
+  }
+
+  private async discoverModels(params: RequestMap['models.discover']['params']): Promise<ModelCatalog> {
+    const requestKey = params.providerId ?? 'unsaved';
+    const generation = (this.catalogRequests.get(requestKey) ?? 0) + 1;
+    this.catalogRequests.set(requestKey, generation);
+    if (params.providerId === 'chatgpt') {
+      if (params.baseUrl !== undefined || params.apiKey !== undefined) throw new RuntimeError('INVALID_PARAMS', '官方 ChatGPT 连接不接受接口地址或 API key');
+      const catalog = await this.chatgpt.discoverModels((key) => this.secrets.add(key));
+      if (this.catalogRequests.get(requestKey) === generation && this.chatgpt.status().connected) this.cacheCatalog('chatgpt', 'https://api.openai.com/v1', catalog);
+      return this.sanitize(catalog);
+    }
+    const provider = this.settings.customProviders?.find((item) => item.id === params.providerId);
+    const baseUrl = new URL(validateSettings({ ...DEFAULT_SETTINGS, baseUrl: params.baseUrl ?? provider?.baseUrl ?? this.settings.baseUrl }).baseUrl).toString().replace(/\/+$/, '');
+    if (params.apiKey !== undefined && (typeof params.apiKey !== 'string' || params.apiKey.length > 4096 || /[\r\n\0]/.test(params.apiKey))) throw new RuntimeError('INVALID_PARAMS', 'API key 格式无效');
+    const apiKey = params.apiKey ?? (provider?.baseUrl === baseUrl ? this.providerKeys.get(provider.id) : undefined);
+    if (apiKey) this.secrets.add(apiKey);
+    const catalog = await discoverCompatibleModels(baseUrl, apiKey);
+    const current = this.settings.customProviders?.find((item) => item.id === provider?.id);
+    if (this.catalogRequests.get(requestKey) === generation) {
+      if (params.providerId) {
+        this.draftCatalogs.set(params.providerId, { baseUrl, credentialFingerprint: credentialFingerprint(apiKey), catalog });
+        if (this.draftCatalogs.size > 24) this.draftCatalogs.delete(this.draftCatalogs.keys().next().value!);
+      }
+      if (current && current.baseUrl === baseUrl && credentialFingerprint(this.providerKeys.get(current.id)) === credentialFingerprint(apiKey)) this.cacheCatalog(current.id, baseUrl, catalog);
+    }
+    return this.sanitize(catalog);
+  }
+
   private async listModels(): Promise<ModelOption[]> {
     const settings = structuredClone(this.settings);
-    if (settings.connection === 'chatgpt') return this.chatgpt.listModels();
-    const selected: ModelOption = { id: settings.model, name: settings.model, source: 'configured' };
-    const models = new Map<string, ModelOption>(settings.model ? [[settings.model, selected]] : []);
-    try {
-      const response = await fetch(`${settings.baseUrl}/models`, {
-        headers: this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {},
-        signal: AbortSignal.timeout(4_000), redirect: 'error',
-      });
-      if (!response.ok || !response.body) { await response.body?.cancel(); return [...models.values()]; }
-      const reader = response.body.getReader();
-      const chunks: Uint8Array[] = [];
-      let length = 0;
-      try {
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          length += value.byteLength;
-          if (length > 1024 * 1024) throw new Error('model catalog too large');
-          chunks.push(value);
-        }
-      } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
-      const body: unknown = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      const data = body && typeof body === 'object' && 'data' in body ? body.data : undefined;
-      if (!Array.isArray(data)) return [...models.values()];
-      for (const value of data.slice(0, 1000)) {
-        if (!value || typeof value !== 'object' || typeof value.id !== 'string' || !value.id.trim() || value.id.length > 200) continue;
-        const id = value.id.trim();
-        const name = typeof value.name === 'string' && value.name.trim() && value.name.length <= 200 ? value.name.trim() : id;
-        const contextWindow = typeof value.context_window === 'number' && Number.isSafeInteger(value.context_window) && value.context_window > 0 ? value.context_window : undefined;
-        const reasoning = typeof value.reasoning === 'boolean' ? value.reasoning : undefined;
-        models.set(id, { id, name, source: models.get(id)?.source ?? 'endpoint', ...(contextWindow !== undefined ? { contextWindow } : {}), ...(reasoning !== undefined ? { reasoning } : {}) });
-        if (contextWindow !== undefined) this.modelLimits.set(`${settings.baseUrl}\0${id}`, contextWindow);
+    const selected = settings.customProviders?.find((provider) => provider.id === settings.providerId);
+    if (settings.connection === 'chatgpt' && this.chatgpt.status().connected) await this.discoverModels({ providerId: 'chatgpt' });
+    else if (selected && (this.providerKeys.has(selected.id) || localEndpoint(selected.baseUrl))) await this.discoverModels({ providerId: selected.id });
+    const options: ModelOption[] = [];
+    const append = (providerId: string, providerName: string, configured: NonNullable<Settings['chatgptModels']>, catalog: ModelCatalog | undefined) => {
+      const remote = catalog?.models ?? [];
+      const ordered = [...remote.map((model) => model.id), ...configured.map((model) => model.id)];
+      for (const id of new Set(ordered)) {
+        const saved = configured.find((model) => model.id === id);
+        const discovered = remote.find((model) => model.id === id);
+        const missing = catalog?.fetched && catalog.complete !== false && !discovered && (providerId === 'chatgpt' || saved?.source === 'endpoint');
+        const availability = missing ? 'unavailable' : discovered?.availability ?? 'unverified';
+        options.push({ ...discovered, id, name: saved?.name ?? discovered?.name ?? id, source: discovered?.source ?? 'configured', providerId, providerName,
+          ...(saved?.contextWindow ? { contextWindow: saved.contextWindow } : {}), enabled: Boolean(saved?.enabled) && availability !== 'unavailable', availability,
+          ...(missing ? { unavailableReason: '当前接口目录已不再提供此模型' } : {}), ...(catalog?.warning ? { catalogWarning: `${providerName}：${catalog.warning}` } : {}) });
       }
-    } catch { /* An unavailable catalog must not block a manually configured model or expose an error body. */ }
-    return this.sanitize([...models.values()]);
+    };
+    append('chatgpt', 'ChatGPT', settings.chatgptModels ?? [], this.catalogs.get('chatgpt')?.catalog ?? { models: this.chatgpt.listModels(), fetched: false });
+    for (const provider of settings.customProviders ?? []) append(provider.id, provider.name, provider.models, this.catalogs.get(provider.id)?.catalog);
+    return this.sanitize(options);
+  }
+
+  private requireEnabledModel(settings: Settings) {
+    const providerId = settings.providerId ?? (settings.connection === 'chatgpt' ? 'chatgpt' : 'custom-default');
+    const configured = providerId === 'chatgpt' ? settings.chatgptModels : settings.customProviders?.find((provider) => provider.id === providerId)?.models;
+    const model = configured?.find((item) => item.id === settings.model);
+    if (!model?.enabled) throw new RuntimeError('MODEL_DISABLED', '当前模型未启用，请在设置中勾选或选择其他已启用模型。');
+    const catalog = this.catalogs.get(providerId)?.catalog;
+    const discovered = catalog?.models.find((item) => item.id === settings.model);
+    if (discovered?.availability === 'unavailable' || catalog?.fetched && catalog.complete !== false && !discovered && (providerId === 'chatgpt' || model.source === 'endpoint')) throw new RuntimeError('MODEL_UNAVAILABLE', '当前接口已不再提供此模型，请刷新目录并选择其他已启用模型。');
   }
 
   private requireIdle(id: string) {
@@ -355,9 +437,9 @@ export class RuntimeService {
 
   private contextLimit(settings: Settings): number | null {
     if (settings.connection === 'chatgpt') {
-      try { return this.chatgpt.getModel(settings.model).contextWindow; } catch { return null; }
+      return settings.contextWindow ?? this.chatgpt.getContextWindow(settings.model);
     }
-    return settings.contextWindow ?? this.modelLimits.get(`${settings.baseUrl}\0${settings.model}`) ?? null;
+    return settings.contextWindow ?? this.modelLimits.get(`${settings.providerId}\0${settings.baseUrl}\0${settings.model}`) ?? null;
   }
 
   private hostedSearch(settings: Settings) {
@@ -425,6 +507,7 @@ export class RuntimeService {
     if (Buffer.byteLength(text) > 1024 * 1024) throw new RuntimeError('INVALID_PARAMS', '单条消息最多 1 MiB');
     const settings = structuredClone(this.settings);
     if (!settings.model.trim()) throw new RuntimeError('MODEL_REQUIRED', '请先配置模型名称');
+    this.requireEnabledModel(settings);
     if (settings.connection === 'chatgpt' && !this.chatgpt.status().connected && !this.options.streamFn) throw new RuntimeError('LOGIN_REQUIRED', '请先在设置中 Continue with ChatGPT。');
     const id = randomUUID();
     const apiKey = this.apiKey;
@@ -493,6 +576,7 @@ export class RuntimeService {
     const settings = structuredClone(this.settings);
     const promise = (async () => {
       if (!live) return runBaseline({ settings });
+      this.requireEnabledModel(settings);
       if (!settings.model.trim()) throw new RuntimeError('MODEL_REQUIRED', '请先配置模型名称');
       if (settings.connection === 'chatgpt') {
         const auth = await this.chatgpt.getAuth(controller.signal);
@@ -620,6 +704,10 @@ export class RuntimeService {
     await this.baselinePromise?.catch(() => {});
     await this.storage.flush();
     this.apiKey = '';
+    this.providerKeys.clear();
+    this.catalogs.clear();
+    this.catalogRequests.clear();
+    this.draftCatalogs.clear();
     this.secrets.clear();
   }
 
@@ -724,7 +812,7 @@ function validateSettings(value: unknown): Settings {
   if (settings.connection !== 'chatgpt' && settings.connection !== 'compatible') throw new RuntimeError('INVALID_PARAMS', '连接类型无效');
   if (settings.apiFormat !== 'responses' && settings.apiFormat !== 'chat-completions') throw new RuntimeError('INVALID_PARAMS', '接口格式无效');
   if (settings.contextWindow !== undefined && (!Number.isSafeInteger(settings.contextWindow) || Number(settings.contextWindow) < 128 || Number(settings.contextWindow) > 10_000_000)) throw new RuntimeError('INVALID_PARAMS', '上下文上限须为 128 到 10000000 之间的整数');
-  return { connection: settings.connection, apiFormat: settings.apiFormat, baseUrl, model: stringParam(settings.model, 'model').trim(), systemPrompt: stringParam(settings.systemPrompt, 'systemPrompt'), workspace: stringParam(settings.workspace, 'workspace'), enabledTools: validateToolNames(settings.enabledTools), ...(settings.contextWindow !== undefined ? { contextWindow: Number(settings.contextWindow) } : {}) };
+  return { connection: settings.connection, apiFormat: settings.apiFormat, baseUrl, model: stringParam(settings.model, 'model').trim(), systemPrompt: stringParam(settings.systemPrompt, 'systemPrompt'), workspace: stringParam(settings.workspace, 'workspace'), enabledTools: validateToolNames(settings.enabledTools), ...(settings.contextWindow !== undefined ? { contextWindow: Number(settings.contextWindow) } : {}), ...(settings.providerId !== undefined ? { providerId: settings.providerId as string } : {}), ...(settings.chatgptModels !== undefined ? { chatgptModels: settings.chatgptModels as Settings['chatgptModels'] } : {}), ...(settings.customProviders !== undefined ? { customProviders: settings.customProviders as Settings['customProviders'] } : {}) };
 }
 
 function selectedIds(value: unknown, name: string, max: number): string[] {
@@ -732,3 +820,7 @@ function selectedIds(value: unknown, name: string, max: number): string[] {
   if (!Array.isArray(value) || value.length > max || value.some((entry) => typeof entry !== 'string' || !entry.trim() || entry.length > 4096)) throw new RuntimeError('INVALID_PARAMS', `${name} 格式无效或超过 ${max} 项`);
   return [...new Set(value)];
 }
+
+function localEndpoint(baseUrl: string) { return ['localhost', '127.0.0.1', '[::1]'].includes(new URL(baseUrl).hostname); }
+
+function credentialFingerprint(key: string | undefined) { return createHash('sha256').update(key ?? '').digest('hex'); }

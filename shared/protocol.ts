@@ -31,12 +31,39 @@ export interface SkillDraft {
 export interface Workspace { id: string; name: string; path: string; createdAt: string }
 export interface SessionCategory { id: string; name: string; createdAt: string }
 export interface Organization { workspaces: Workspace[]; categories: SessionCategory[] }
+export interface ConfiguredModel {
+  id: string;
+  name?: string;
+  enabled: boolean;
+  contextWindow?: number;
+  source?: 'manual' | 'endpoint';
+}
+export interface CustomProvider {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiFormat: 'responses' | 'chat-completions';
+  models: ConfiguredModel[];
+}
+export interface ProviderStatus { id: string; hasApiKey: boolean }
 export interface ModelOption {
   id: string;
   name: string;
   contextWindow?: number;
   reasoning?: boolean;
   source: 'catalog' | 'configured' | 'endpoint';
+  providerId?: string;
+  providerName?: string;
+  enabled?: boolean;
+  availability?: 'unverified' | 'available' | 'unavailable';
+  unavailableReason?: string;
+  catalogWarning?: string;
+}
+export interface ModelCatalog {
+  models: ModelOption[];
+  fetched: boolean;
+  complete?: boolean;
+  warning?: string;
 }
 
 export interface Settings {
@@ -48,6 +75,9 @@ export interface Settings {
   workspace: string;
   enabledTools: ToolName[];
   contextWindow?: number;
+  providerId?: string;
+  chatgptModels?: ConfiguredModel[];
+  customProviders?: CustomProvider[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -160,14 +190,15 @@ export type RuntimeEvent =
   | { type: 'run.finished'; sessionId: string; runId: string; status: 'completed' | 'cancelled' | 'error'; error?: string };
 
 export interface RequestMap {
-  'settings.get': { params: Record<string, never>; result: { settings: Settings; hasApiKey: boolean; chatgpt: AuthStatus } };
-  'settings.set': { params: { settings: Settings; apiKey?: string }; result: { settings: Settings; hasApiKey: boolean; chatgpt: AuthStatus } };
+  'settings.get': { params: Record<string, never>; result: { settings: Settings; hasApiKey: boolean; chatgpt: AuthStatus; providerStatus?: ProviderStatus[] } };
+  'settings.set': { params: { settings: Settings; apiKey?: string; providerApiKeys?: Record<string, string> }; result: { settings: Settings; hasApiKey: boolean; chatgpt: AuthStatus; providerStatus?: ProviderStatus[] } };
   'auth.status': { params: Record<string, never>; result: AuthStatus };
   'auth.login': { params: Record<string, never>; result: { started: boolean } };
   'auth.respond': { params: { promptId: string; value: string }; result: { resolved: boolean } };
   'auth.cancel': { params: Record<string, never>; result: { cancelled: boolean } };
   'auth.logout': { params: Record<string, never>; result: { loggedOut: boolean } };
   'models.list': { params: Record<string, never>; result: ModelOption[] };
+  'models.discover': { params: { providerId?: string; baseUrl?: string; apiKey?: string }; result: ModelCatalog };
   'organization.get': { params: Record<string, never>; result: Organization };
   'workspaces.create': { params: { path: string; name?: string }; result: Workspace };
   'workspaces.rename': { params: { workspaceId: string; name: string }; result: Workspace };

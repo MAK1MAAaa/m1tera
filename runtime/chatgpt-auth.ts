@@ -7,7 +7,83 @@ import {
 } from '@earendil-works/pi-ai';
 import { openaiProvider } from '@earendil-works/pi-ai/providers/openai';
 import type { StreamFn } from '@earendil-works/pi-agent-core';
-import type { AuthStatus, ModelOption, RuntimeEvent } from '../shared/protocol.js';
+import type { AuthStatus, ModelCatalog, ModelOption, RuntimeEvent } from '../shared/protocol.js';
+
+const DEFAULT_MODEL_ID = 'gpt-6.1-sol';
+const CATALOG_LIMIT_BYTES = 1024 * 1024;
+const CATALOG_WARNING = '无法确认当前账户的模型目录。保留的模型尚未验证，可重新获取。';
+const UNAVAILABLE_STATES = new Set(['deprecated', 'retired', 'removed', 'disabled', 'shutdown', 'shut_down', 'inactive', 'unavailable', 'discontinued', 'sunset']);
+
+function record(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+}
+
+function modelString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const text = value.trim();
+  if (!text || text.length > 200) return undefined;
+  const controlCharacter = Array.from(text).some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127);
+  return controlCharacter ? undefined : text;
+}
+
+function dateValue(value: unknown): number | undefined {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(value)) return undefined;
+  const calendarDate = value.slice(0, 10);
+  const day = Date.parse(`${calendarDate}T00:00:00Z`);
+  if (!Number.isFinite(day) || new Date(day).toISOString().slice(0, 10) !== calendarDate) return undefined;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : undefined;
+}
+
+function unavailableModel(value: Record<string, unknown>): boolean {
+  if (value.deprecated === true || value.retired === true || value.disabled === true || value.available === false) return true;
+  for (const field of ['status', 'lifecycle_status', 'lifecycleStatus', 'lifecycle', 'state']) {
+    const state = value[field];
+    if (typeof state === 'string' && UNAVAILABLE_STATES.has(state.trim().toLowerCase())) return true;
+  }
+  // An announced shutdown already makes an OpenAI model deprecated, even before its shutdown date.
+  if (dateValue(value.shutdown_date) !== undefined || dateValue(value.shutdownDate) !== undefined) return true;
+  return ['deprecated_at', 'deprecatedAt', 'deprecation_date', 'retired_at', 'retiredAt', 'retirement_date']
+    .some((field) => { const date = dateValue(value[field]); return date !== undefined && date <= Date.now(); });
+}
+
+function textModel(value: Record<string, unknown>): boolean {
+  const modalities = record(value.modalities);
+  const capabilities = record(value.capabilities);
+  const media = [value.input, value.input_modalities, modalities?.input, capabilities?.input,
+    value.output, value.output_modalities, modalities?.output, capabilities?.output];
+  return !media.some((types) => Array.isArray(types) && types.length > 0 && types.every((type) => typeof type === 'string') && !types.includes('text'));
+}
+
+async function readCatalog(response: Response, signal: AbortSignal): Promise<unknown> {
+  if (!response.ok) { await response.body?.cancel().catch(() => undefined); throw new Error('Model discovery failed'); }
+  const declaredLength = Number(response.headers.get('content-length'));
+  if (Number.isFinite(declaredLength) && declaredLength > CATALOG_LIMIT_BYTES) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new Error('Model catalog too large');
+  }
+  if (!response.body) throw new Error('Empty model catalog');
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  const onAbort = () => { void reader.cancel().catch(() => undefined); };
+  signal.addEventListener('abort', onAbort, { once: true });
+  try {
+    while (true) {
+      signal.throwIfAborted();
+      const { done, value } = await reader.read();
+      signal.throwIfAborted();
+      if (done) break;
+      length += value.byteLength;
+      if (length > CATALOG_LIMIT_BYTES) { await reader.cancel(); throw new Error('Model catalog too large'); }
+      chunks.push(value);
+    }
+    return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown;
+  } finally {
+    signal.removeEventListener('abort', onAbort);
+    reader.releaseLock();
+  }
+}
 
 interface PendingPrompt {
   resolve: (value: string) => void;
@@ -25,6 +101,13 @@ export class ChatGPTAuth {
   private connected = false;
   private controller?: AbortController;
   private readonly prompts = new Map<string, PendingPrompt>();
+  private catalog?: ModelOption[];
+  private catalogVerified = false;
+  private catalogGeneration = 0;
+  private discoveryRequest = 0;
+  private discoveryController?: AbortController;
+  private readonly discoveredModels = new Map<string, Model<Api>>();
+  private readonly discoveredLimits = new Map<string, number>();
 
   constructor(
     private readonly dataDir: string,
@@ -59,6 +142,7 @@ export class ChatGPTAuth {
   startLogin(): { started: boolean } {
     if (this.controller) return { started: false };
     if (!this.deviceId) throw new Error('ChatGPT 认证尚未初始化。');
+    this.resetModelCatalog();
     const controller = new AbortController();
     this.controller = controller;
     let outcomeMessage: string | undefined;
@@ -134,22 +218,98 @@ export class ChatGPTAuth {
 
   cancel(): { cancelled: boolean } {
     const pending = this.controller;
+    this.resetModelCatalog();
     pending?.abort();
     return { cancelled: Boolean(pending) };
   }
 
   getModel(id: string): Model<Api> {
-    const model = this.models.getModel('openai', id);
+    const model = this.discoveredModels.get(id) ?? this.models.getModel('openai', id);
     if (!model) throw new Error(`Pi ${'1.1.0'} 未包含模型 ${id}；请使用 gpt-6.1-sol 或更新明确的模型配置。`);
     return model;
   }
 
   listModels(): ModelOption[] {
-    // ChatGPT OAuth uses the Responses API. This is the pinned Pi chat catalog,
-    // not a claim that every model is available to the current account plan.
-    return this.models.getModels('openai')
-      .filter((model) => model.api === 'openai-responses' && model.input.includes('text'))
-      .map((model) => ({ id: model.id, name: model.name, contextWindow: model.contextWindow, reasoning: model.reasoning, source: 'catalog' as const }));
+    if (this.catalog !== undefined) return this.catalog.map((model) => ({ ...model, availability: this.catalogVerified ? 'available' : 'unverified' }));
+    const model = this.models.getModel('openai', DEFAULT_MODEL_ID);
+    return [{ id: DEFAULT_MODEL_ID, name: model?.name ?? 'GPT-6.1 Sol', source: 'catalog', availability: 'unverified',
+      ...(model ? { contextWindow: model.contextWindow, reasoning: model.reasoning } : {}) }];
+  }
+
+  getContextWindow(id: string): number | null {
+    return this.discoveredLimits.get(id) ?? this.models.getModel('openai', id)?.contextWindow ?? null;
+  }
+
+  async discoverModels(onCredential?: (apiKey: string) => void, fetcher: typeof globalThis.fetch = globalThis.fetch): Promise<ModelCatalog> {
+    if (!this.status().connected || this.status().loginPending) {
+      return { models: this.listModels(), fetched: false, warning: '请先连接 ChatGPT，再获取当前账户的模型目录。' };
+    }
+    const generation = this.catalogGeneration;
+    const request = ++this.discoveryRequest;
+    this.discoveryController?.abort();
+    const controller = new AbortController();
+    this.discoveryController = controller;
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(4000)]);
+    const current = () => generation === this.catalogGeneration && request === this.discoveryRequest && this.status().connected;
+    try {
+      const { apiKey } = await this.getAuth(signal);
+      signal.throwIfAborted();
+      if (!current()) throw new Error('Model discovery cancelled');
+      onCredential?.(apiKey);
+      const response = await fetcher('https://api.openai.com/v1/models', {
+        method: 'GET', headers: { Authorization: `Bearer ${apiKey}`, accept: 'application/json' }, redirect: 'error', signal,
+      });
+      const payload = record(await readCatalog(response, signal));
+      if (!payload || !Array.isArray(payload.models)) throw new Error('Invalid ChatGPT model catalog');
+      const catalog: ModelOption[] = [];
+      const models = new Map<string, Model<Api>>();
+      const limits = new Map<string, number>();
+      const seen = new Set<string>();
+      for (const item of payload.models) {
+        const value = record(item);
+        if (!value || value.visibility !== 'list' || unavailableModel(value) || !textModel(value)) continue;
+        const id = modelString(value.slug);
+        if (!id || id.includes(apiKey) || seen.has(id)) continue;
+        seen.add(id);
+        const exact = this.models.getModel('openai', id);
+        const displayName = modelString(value.display_name);
+        const name = (displayName && !displayName.includes(apiKey) ? displayName : exact?.name ?? id).slice(0, 100);
+        const remoteLimit = typeof value.context_window === 'number' && Number.isSafeInteger(value.context_window) && value.context_window >= 128 && value.context_window <= 10_000_000
+          ? value.context_window : undefined;
+        const contextWindow = remoteLimit ?? exact?.contextWindow;
+        const reasoning = typeof value.reasoning === 'boolean' ? value.reasoning : exact?.reasoning;
+        catalog.push({ id, name, source: 'endpoint', availability: 'available',
+          ...(contextWindow !== undefined ? { contextWindow } : {}), ...(reasoning !== undefined ? { reasoning } : {}) });
+        if (remoteLimit !== undefined) limits.set(id, remoteLimit);
+        const baseline = exact ?? this.models.getModel('openai', DEFAULT_MODEL_ID);
+        if (baseline) models.set(id, { ...baseline, id, name, api: 'openai-responses', provider: 'openai', input: exact?.input ?? ['text'],
+          contextWindow: contextWindow ?? 128_000, reasoning: reasoning ?? false });
+      }
+      signal.throwIfAborted();
+      if (!current()) throw new Error('Model discovery cancelled');
+      this.catalog = catalog;
+      this.catalogVerified = true;
+      this.discoveredModels.clear();
+      this.discoveredLimits.clear();
+      for (const [id, model] of models) this.discoveredModels.set(id, model);
+      for (const [id, limit] of limits) this.discoveredLimits.set(id, limit);
+      return { models: this.listModels(), fetched: true };
+    } catch {
+      // Discovery failures may contain bearer tokens or upstream response bodies; only emit a fixed message.
+      if (current()) this.catalogVerified = false;
+      return { models: this.listModels().map((model) => ({ ...model, availability: 'unverified' })), fetched: false, warning: CATALOG_WARNING };
+    } finally {
+      if (this.discoveryController === controller) this.discoveryController = undefined;
+    }
+  }
+
+  private resetModelCatalog(): void {
+    this.catalogGeneration++;
+    this.discoveryController?.abort();
+    this.catalog = undefined;
+    this.catalogVerified = false;
+    this.discoveredModels.clear();
+    this.discoveredLimits.clear();
   }
 
   getStreamFn(): StreamFn {
@@ -169,6 +329,7 @@ export class ChatGPTAuth {
 
   async logout(): Promise<void> {
     this.cancel();
+    this.connected = false;
     const credential = await this.credentials.read('openai');
     let revocationConfirmed = !credential || credential.type !== 'oauth';
     if (credential?.type === 'oauth' && typeof credential.clientId === 'string') {

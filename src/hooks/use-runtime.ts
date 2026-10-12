@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_SETTINGS } from '../../shared/protocol';
-import type { Approval, ApprovalMode, AuthStatus, ComposerDraft, ContextEstimate, DisplayMessage, ModelOption, Organization, RequestMap, RuntimeEvent, Session, SessionCategory, SessionSummary, Settings, Skill, SkillDraft, SkillSummary, TokenUsage, Workspace, WorkspaceFile } from '../../shared/protocol';
+import type { Approval, ApprovalMode, AuthStatus, ComposerDraft, ContextEstimate, DisplayMessage, ModelOption, Organization, ProviderStatus, RequestMap, RuntimeEvent, Session, SessionCategory, SessionSummary, Settings, Skill, SkillDraft, SkillSummary, TokenUsage, Workspace, WorkspaceFile } from '../../shared/protocol';
 import type { RuntimeClient } from '../lib/runtime-client';
 
 export interface ActiveTool {
@@ -21,6 +21,7 @@ function upsertSummary(sessions: SessionSummary[], session: SessionSummary) {
 export function useRuntime(client: RuntimeClient) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [hasApiKey, setHasApiKey] = useState(false);
+  const [providerStatus, setProviderStatus] = useState<ProviderStatus[]>([]);
   const [chatgpt, setChatgpt] = useState<AuthStatus>({ connected: false, loginPending: false });
   const [authPrompt, setAuthPrompt] = useState<{ id: string; message: string; placeholder?: string } | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
@@ -120,6 +121,7 @@ export function useRuntime(client: RuntimeClient) {
           setError(event.message);
           setReady(false);
           setHasApiKey(false);
+          setProviderStatus([]);
           setRuns({});
           setApprovals([]);
           setTools({});
@@ -139,6 +141,7 @@ export function useRuntime(client: RuntimeClient) {
           setChatgpt(event.status);
           if (!event.status.loginPending) setAuthPrompt(null);
           setAuthMessage(event.message ?? (event.status.connected ? 'ChatGPT 已连接。' : null));
+          if (!event.status.loginPending) void refreshModels();
           break;
         case 'run.started':
           activeRuns.current[event.sessionId] = event.runId;
@@ -232,6 +235,7 @@ export function useRuntime(client: RuntimeClient) {
         if (disposed) return;
         setSettings(configuration.settings);
         setHasApiKey(configuration.hasApiKey);
+        setProviderStatus(configuration.providerStatus ?? []);
         setChatgpt(configuration.chatgpt);
         setSessions(list);
         setOrganization(organization);
@@ -297,12 +301,13 @@ export function useRuntime(client: RuntimeClient) {
     catch (cause) { setError(errorMessage(cause)); }
   }, [client]);
 
-  const saveSettings = useCallback(async (draft: Settings, apiKey?: string, approvalMode?: ApprovalMode) => {
+  const saveSettings = useCallback(async (draft: Settings, apiKey?: string, approvalMode?: ApprovalMode, providerApiKeys?: Record<string, string>) => {
     const sessionId = selectedRef.current;
     try {
-      const result = await client.request('settings.set', { settings: draft, ...(apiKey !== undefined ? { apiKey } : {}) });
+      const result = await client.request('settings.set', { settings: draft, ...(apiKey !== undefined ? { apiKey } : {}), ...(providerApiKeys ? { providerApiKeys } : {}) });
       setSettings(result.settings);
       setHasApiKey(result.hasApiKey);
+      setProviderStatus(result.providerStatus ?? []);
       setChatgpt(result.chatgpt);
       if (sessionId) {
         const session = await client.request('sessions.configure', { sessionId, enabledTools: draft.enabledTools, workspace: draft.workspace, ...(approvalMode ? { approvalMode } : {}) });
@@ -351,17 +356,28 @@ export function useRuntime(client: RuntimeClient) {
     } catch (cause) { setError(errorMessage(cause)); return undefined; }
   }, [client]);
 
-  const selectModel = useCallback(async (model: string) => {
+  const selectModel = useCallback(async (model: string, providerId?: string) => {
     setError(null);
     try {
-      const result = await client.request('settings.set', { settings: { ...settings, model, contextWindow: undefined, apiFormat: model === 'gpt-6.1-sol' ? 'responses' : settings.apiFormat } });
+      const id = providerId ?? settings.providerId ?? (settings.connection === 'chatgpt' ? 'chatgpt' : 'custom-default');
+      const option = models.find((item) => item.id === model && (!item.providerId || item.providerId === id));
+      if (!option || option.enabled === false || option.availability === 'unavailable') throw new Error('该模型未启用或已不可用，请先在设置中管理模型。');
+      const provider = settings.customProviders?.find((item) => item.id === id);
+      if (id !== 'chatgpt' && !provider && settings.customProviders) throw new Error('接口配置不存在，请先在设置中添加。');
+      const configured = id === 'chatgpt' ? settings.chatgptModels?.find((item) => item.id === model) : provider?.models.find((item) => item.id === model);
+      const next: Settings = { ...settings, model, providerId: id, contextWindow: configured?.contextWindow,
+        connection: id === 'chatgpt' ? 'chatgpt' : 'compatible', baseUrl: id === 'chatgpt' ? 'https://api.openai.com/v1' : provider?.baseUrl ?? settings.baseUrl,
+        apiFormat: id === 'chatgpt' ? 'responses' : provider?.apiFormat ?? settings.apiFormat };
+      const result = await client.request('settings.set', { settings: next });
       setSettings(result.settings);
       setHasApiKey(result.hasApiKey);
+      setProviderStatus(result.providerStatus ?? []);
       setChatgpt(result.chatgpt);
       await preview(selectedRef.current ?? undefined);
+      await refreshModels();
       return true;
     } catch (cause) { setError(errorMessage(cause)); return false; }
-  }, [client, preview, settings]);
+  }, [client, models, preview, refreshModels, settings]);
 
   const setApprovalMode = useCallback(async (approvalMode: ApprovalMode) => {
     setError(null);
@@ -468,7 +484,7 @@ export function useRuntime(client: RuntimeClient) {
   const session = selectedId ? loaded[selectedId] : undefined;
   const draftEstimate = draftPreview?.sessionId === selectedId && !(selectedId && runs[selectedId]) ? draftPreview?.estimate : undefined;
   return {
-    settings, hasApiKey, chatgpt, authMessage, authPrompt, authAction, authRespond, sessions, selectedId, session, ready, busy, error,
+    settings, hasApiKey, providerStatus, chatgpt, authMessage, authPrompt, authAction, authRespond, sessions, selectedId, session, ready, busy, error,
     estimate: estimates[selectedId ?? 'new'], usage: selectedId ? usages[selectedId] : null,
     running: selectedId ? !!runs[selectedId] : false, runs,
     activeTools: selectedId ? tools[selectedId] ?? [] : [],

@@ -28,4 +28,4 @@
 
 本轮没有重测真实模型 token 基线；0.1.0 的 49 / 237 / 957 输入结果仅作历史记录，见 [基线报告](context-baseline-live.md)。API key/OAuth 凭据仍只在后端内存，升级或退出后需要重新登录。
 
-其他操作系统的安装产物、独立无 Node 机器安装、公开签名与公证仍未验收。安装包约 63.76 MiB，app 约 217.56 MiB；精确大小、SHA256 和内置依赖 lockfile 一致性见 [产物清单](release-artifacts.json)。历史产物清单保留为 [0.2.0](release-artifacts-0.2.0.json) 和 [0.1.0](release-artifacts-0.1.0.json)。
+其他操作系统的安装产物、独立无 Node 机器安装、公开签名与公证仍未验收。安装包约 63.76 MiB，app 约 217.56 MiB；精确大小、SHA256 和内置依赖 lockfile 一致性见 [0.3.0 产物清单](release-artifacts-0.3.0.json)。历史产物清单保留为 [0.2.0](release-artifacts-0.2.0.json) 和 [0.1.0](release-artifacts-0.1.0.json)。

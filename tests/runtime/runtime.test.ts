@@ -90,7 +90,9 @@ async function createRuntime(baseUrl: string, extra: Partial<Settings> = {}) {
   const events: RuntimeEvent[] = [];
   const service = new RuntimeService({ dataDir: path.join(directory, 'appdata'), emit: (event) => events.push(event) });
   cleanup.push(() => service.shutdown());
-  const response = await request(service, 'settings.set', { settings: { ...DEFAULT_SETTINGS, connection: 'compatible', apiFormat: 'chat-completions', baseUrl, model: 'fixture', workspace, ...extra }, apiKey: 'test-memory-only-secret' });
+  const settings: Settings = { ...DEFAULT_SETTINGS, connection: 'compatible', apiFormat: 'chat-completions', baseUrl, model: 'fixture', workspace, ...extra };
+  if (settings.connection === 'chatgpt' && settings.chatgptModels === undefined) settings.chatgptModels = [{ id: settings.model, enabled: true, source: 'manual' }];
+  const response = await request(service, 'settings.set', { settings, apiKey: 'test-memory-only-secret' });
   expect(response.error).toBeUndefined();
   const session = (await request(service, 'sessions.create', {})).result as Session;
   return { service, directory, workspace, events, session };
@@ -105,15 +107,14 @@ async function configure(service: RuntimeService, session: Session, enabledTools
 }
 
 describe('runtime requests and context', () => {
-  it('lists pinned Pi Responses chat models without reading or requiring account credentials', async () => {
+  it('lists only the explicit official default as unverified without account credentials', async () => {
     const backend = await fixture();
-    const { service } = await createRuntime(backend.baseUrl, { connection: 'chatgpt' });
+    const { service } = await createRuntime(backend.baseUrl, { connection: 'chatgpt', model: DEFAULT_SETTINGS.model });
     const response = await request(service, 'models.list', {});
     expect(response.error).toBeUndefined();
     const options = response.result as ModelOption[];
-    expect(options.find((model) => model.id === 'gpt-6.1-sol')).toMatchObject({ source: 'catalog', reasoning: true });
-    expect(options.every((model) => model.source === 'catalog' && typeof model.contextWindow === 'number')).toBe(true);
-    expect(options.some((model) => model.id.includes('embedding'))).toBe(false);
+    expect(options).toHaveLength(1);
+    expect(options[0]).toMatchObject({ id: DEFAULT_SETTINGS.model, providerId: 'chatgpt', enabled: true, availability: 'unverified' });
     expect(backend.bodies).toHaveLength(0);
   });
 
@@ -130,20 +131,24 @@ describe('runtime requests and context', () => {
     const address = server.address();
     if (!address || typeof address === 'string') throw new Error('address missing');
     const { service } = await createRuntime(`http://127.0.0.1:${address.port}/v1`);
-    expect((await request(service, 'models.list', {})).result).toEqual([
-      { id: 'fixture', name: 'fixture', source: 'configured' },
-      { id: 'local-small', name: 'Local Small', contextWindow: 8192, reasoning: false, source: 'endpoint' },
+    const listed = (await request(service, 'models.list', {})).result as ModelOption[];
+    expect(listed.filter((item) => item.providerId === 'custom-default')).toEqual([
+      { id: 'fixture', name: 'fixture', source: 'endpoint', providerId: 'custom-default', providerName: '自定义接口', enabled: true, availability: 'available' },
+      { id: 'local-small', name: 'Local Small', contextWindow: 8192, reasoning: false, source: 'endpoint', providerId: 'custom-default', providerName: '自定义接口', enabled: false, availability: 'available' },
     ]);
     expect(requests[0]).toEqual({ url: '/v1/models', key: 'Bearer test-memory-only-secret' });
     fail = true;
     const failed = await request(service, 'models.list', {});
     expect(failed.error).toBeUndefined();
-    expect(failed.result).toEqual([{ id: 'fixture', name: 'fixture', source: 'configured' }]);
+    expect((failed.result as ModelOption[]).filter((item) => item.providerId === 'custom-default')).toEqual(listed.filter((item) => item.providerId === 'custom-default').map((item) => ({ ...item, availability: 'unverified', catalogWarning: expect.any(String) })));
     expect(JSON.stringify(failed)).not.toContain('provider-private-error');
     expect(JSON.stringify(failed)).not.toContain('test-memory-only-secret');
     const settings = ((await request(service, 'settings.get', {})).result as { settings: Settings }).settings;
-    const selected = { ...settings, model: 'local-small' };
+    const selected: Settings = { ...settings, model: 'local-small', customProviders: settings.customProviders?.map((provider) => provider.id === settings.providerId ? { ...provider, models: [...provider.models, { id: 'local-small', enabled: true, source: 'endpoint' }] } : provider) };
     expect((await request(service, 'settings.set', { settings: selected })).error).toBeUndefined();
+    expect((await request(service, 'context.preview', {})).result).toMatchObject({ contextWindow: 8192 });
+    fail = false;
+    expect((await request(service, 'models.discover', { providerId: selected.providerId })).error).toBeUndefined();
     expect((await request(service, 'context.preview', {})).result).toMatchObject({ contextWindow: 8192 });
     await request(service, 'settings.set', { settings: { ...selected, systemPrompt: 'Changed prompt' } });
     expect((await request(service, 'context.preview', {})).result).toMatchObject({ contextWindow: 8192 });
