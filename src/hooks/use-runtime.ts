@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_SETTINGS } from '../../shared/protocol';
 import type { Approval, ApprovalMode, AuthStatus, BenchmarkReport, BenchmarkStatus, BenchmarkSuiteId, ComposerDraft, ContextEstimate, DisplayMessage, ModelOption, Organization, ProviderStatus, RequestMap, RuntimeEvent, Session, SessionCategory, SessionSummary, Settings, Skill, SkillDraft, SkillSummary, TokenUsage, Workspace, WorkspaceFile } from '../../shared/protocol';
 import type { RuntimeClient } from '../lib/runtime-client';
+import type { BenchmarkProfile } from '../../shared/benchmark-catalog';
 
 export interface ActiveTool {
   id: string;
@@ -116,11 +117,11 @@ export function useRuntime(client: RuntimeClient) {
     finally { if (generation === benchmarkRequest.current) setBenchmarksLoading(false); }
   }, [client]);
 
-  const startBenchmark = useCallback(async (suite: BenchmarkSuiteId, limit: number) => {
+  const startBenchmark = useCallback(async (suite: BenchmarkSuiteId, limit: number, profile?: BenchmarkProfile) => {
     setBenchmarksBusy(true);
     setBenchmarkError(null);
     try {
-      await client.request('benchmark.start', { suite, limit });
+      await client.request('benchmark.start', { suite, limit, ...(profile ? { profile } : {}) });
       await refreshBenchmarks();
       return true;
     } catch (cause) { setBenchmarkError(errorMessage(cause)); return false; }

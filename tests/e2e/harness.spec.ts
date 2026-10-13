@@ -1,10 +1,39 @@
 import { expect, test, type Page } from '@playwright/test';
 import { addCustomProvider, addManualModel, login, mockRuntime, openSettings } from './fixtures';
 import type { FixtureState } from './fixtures';
+import type { BenchmarkProfile, BenchmarkReport, BenchmarkStatus, RuntimeMethod, RequestMap } from '../../shared/protocol';
 
 async function openBenchmarks(page: Page) {
   await page.getByRole('button', { name: '评测', exact: true }).click();
   return page.getByRole('dialog', { name: '模型与 Harness 评测', exact: true });
+}
+
+async function augmentBenchmarkFixture(page: Page) {
+  await page.addInitScript(() => {
+    const state = (window as Window & { __M1TERA_TEST_STATE__: FixtureState & { profileStarts: { suite: string; profile?: BenchmarkProfile }[] } }).__M1TERA_TEST_STATE__;
+    const client = window.__M1TERA_RUNTIME__!;
+    const original = client.request.bind(client);
+    state.profileStarts = [];
+    client.request = async <M extends RuntimeMethod>(method: M, params: RequestMap[M]['params']): Promise<RequestMap[M]['result']> => {
+      const result = await original(method, params);
+      if (method === 'benchmark.start') {
+        const selection = params as RequestMap['benchmark.start']['params'];
+        state.profileStarts.push({ suite: selection.suite, profile: selection.profile });
+        state.benchmarkRunning!.profile = selection.profile;
+        state.emit({ type: 'benchmark.progress', ...state.benchmarkRunning! });
+      }
+      if (method === 'benchmark.status') {
+        const status = result as BenchmarkStatus;
+        status.reports = status.reports.map((item) => {
+          const report = state.benchmarkReports[item.runId];
+          const protocolInvalid = report.suite === 'longharness-tracing' && report.source.adapterProtocol !== 'longharness-task-contract-v3';
+          return { ...item, profile: report.settings.profile, meanReward: protocolInvalid ? null : report.metrics.meanReward,
+            accuracy: protocolInvalid ? null : item.accuracy, ...(protocolInvalid ? { protocolInvalid: true } : {}) };
+        });
+      }
+      return result;
+    };
+  });
 }
 
 test('harness policy round trips through settings without accepting out of range budgets', async ({ page }) => {
@@ -206,4 +235,119 @@ test('Enter outside the explicit benchmark start button cannot admit a model req
   await start.press('Enter');
   await expect(dialog.getByRole('status', { name: '评测进度', exact: true })).toContainText('SimpleQA');
   expect(await page.evaluate(() => (window as Window & { __M1TERA_TEST_STATE__: FixtureState }).__M1TERA_TEST_STATE__.benchmarkStarts)).toEqual([{ suite: 'simpleqa', limit: 2 }]);
+});
+
+test('new benchmark suites reset sample limits and require explicit start for both profiles', async ({ page }) => {
+  await mockRuntime(page, false, 0, { connected: true }); await augmentBenchmarkFixture(page); await page.goto('/');
+  const dialog = await openBenchmarks(page);
+  const suite = dialog.locator('select[name="benchmarkSuite"]');
+  const limit = dialog.locator('input[name="benchmarkLimit"]');
+  await expect(suite.locator('option')).toHaveCount(7);
+  await suite.selectOption('letta-context');
+  await expect(limit).toHaveValue('3'); await expect(limit).toHaveAttribute('max', '100');
+  await expect(dialog.locator('select[name="benchmarkProfile"]')).toHaveCount(0);
+  await suite.selectOption('longharness-tracing');
+  await expect(limit).toHaveValue('2'); await expect(limit).toHaveAttribute('max', '50');
+  const profile = dialog.locator('select[name="benchmarkProfile"]');
+  await profile.selectOption('direct'); await profile.press('Enter');
+  await limit.press('Enter');
+  await dialog.locator('form.benchmark-controls').evaluate((form: HTMLFormElement) => form.requestSubmit());
+  expect(await page.evaluate(() => (window as Window & { __M1TERA_TEST_STATE__: FixtureState }).__M1TERA_TEST_STATE__.benchmarkStarts)).toEqual([]);
+  await dialog.getByRole('button', { name: '开始评测', exact: true }).click();
+  expect(await page.evaluate(() => (window as Window & { __M1TERA_TEST_STATE__: FixtureState & { profileStarts: unknown[] } }).__M1TERA_TEST_STATE__.profileStarts)).toEqual([{ suite: 'longharness-tracing', profile: 'direct' }]);
+  await dialog.getByRole('button', { name: '停止评测', exact: true }).click();
+  await suite.selectOption('longharness-memos');
+  await expect(profile).toHaveValue('agent'); await expect(limit).toHaveValue('2');
+  await suite.selectOption('simpleqa'); await expect(limit).toHaveValue('20'); await expect(limit).toHaveAttribute('max', '20');
+});
+
+test('Letta reports separate partial reward from full correctness and retain unknown coverage', async ({ page }) => {
+  await mockRuntime(page, false, 0, { connected: true }); await augmentBenchmarkFixture(page); await page.goto('/');
+  const dialog = await openBenchmarks(page);
+  await dialog.locator('select[name="benchmarkSuite"]').selectOption('letta-context');
+  await dialog.getByRole('button', { name: '开始评测', exact: true }).click();
+  await page.evaluate(() => {
+    const state = (window as Window & { __M1TERA_TEST_STATE__: FixtureState }).__M1TERA_TEST_STATE__;
+    const running = state.benchmarkRunning!;
+    // A live-report shape exercises presentation only; all data is isolated and no provider is called.
+    const report: BenchmarkReport = {
+      mode: 'live', status: 'completed', suite: 'letta-context', name: 'Letta 隔离 UI 报告', model: 'isolated-ui-model',
+      measuredAt: new Date().toISOString(), source: { revision: 'isolated-ui-fixture', upstream: 'https://fixture-source.test/', license: 'Fixture only', sourceFileHashes: {}, selectedIds: ['reward-1', 'reward-half', 'reward-unknown'], sampling: 'UI 验证用模拟数据', subsetSha256: '0'.repeat(64) },
+      grader: 'Isolated UI fixture', settings: { browsing: false, maxAnswerTurns: 24, freshContextPerTask: true, sameModelForGrader: true, profile: 'agent', tools: ['read_file'], reasoningEffort: 'low' },
+      total: 3, completed: 3,
+      cases: [
+        { id: 'reward-1', status: 'passed', reward: 1, elapsedMs: 10, estimatedInputTokens: 100, usage: null, requestCount: 2, toolCallCount: 1 },
+        { id: 'reward-half', status: 'failed', reward: 0.5, elapsedMs: 10, estimatedInputTokens: 100, usage: null, requestCount: 2, toolCallCount: 1 },
+        { id: 'reward-unknown', status: 'unknown', error: '模拟评分失败', elapsedMs: 10, estimatedInputTokens: 100, usage: null, requestCount: 1, toolCallCount: 0 },
+      ],
+      metrics: { correct: 1, incorrect: 1, notAttempted: 0, unknown: 1, graded: 2, accuracy: 0.5, accuracyGivenAttempted: 0.5, denominator: 'graded cases', meanReward: 0.75, knownInputTokens: 0, totalInputTokens: null, inputUsageUnknown: true, estimatedInputTokens: 300, elapsedMs: 30, totalOutputTokens: null, requestCount: 5, toolCallCount: 2 },
+    };
+    state.benchmarkReports[running.runId] = report; state.benchmarkRunning = undefined;
+    state.emit({ type: 'benchmark.finished', runId: running.runId });
+  });
+  const result = dialog.getByRole('region', { name: '评测结果', exact: true });
+  await expect(result.locator('.benchmark-metrics > div').nth(0)).toContainText('平均奖励75.0%');
+  await expect(result.locator('.benchmark-metrics > div').nth(1)).toContainText('全正确比例50.0%');
+  await expect(result.locator('.benchmark-metrics > div').nth(2)).toContainText('2 / 3');
+  await expect(result.locator('.benchmark-metrics > div').nth(3)).toContainText('未知1');
+  await expect(result.locator('.benchmark-case-table tbody')).toContainText('reward-half部分奖励 50.0%');
+  await expect(dialog.locator('.benchmark-history')).toContainText('平均奖励 75.0%');
+  await expect(result).toContainText('同模型评分可能存在偏差');
+  await expect(result).toContainText('模型请求 / 工具调用5 / 2');
+  await result.getByText('实际运行配置', { exact: true }).click();
+  await expect(result).toContainText('每题最多模型轮数24'); await expect(result).toContainText('read_file');
+  await result.getByText('逐题详情', { exact: true }).click();
+  await result.locator('.benchmark-case-detail').filter({ hasText: 'reward-unknown' }).locator('summary').click();
+  await expect(result.locator('.benchmark-case-detail').filter({ hasText: 'reward-unknown' })).toContainText('模拟评分失败');
+  await expect(result.locator('.benchmark-case-detail').filter({ hasText: 'reward-unknown' })).not.toContainText('结束原因');
+  await page.evaluate(() => {
+    const state = (window as Window & { __M1TERA_TEST_STATE__: FixtureState }).__M1TERA_TEST_STATE__;
+    const [runId, report] = Object.entries(state.benchmarkReports)[0]; report.mode = 'fixture';
+    state.emit({ type: 'benchmark.finished', runId });
+  });
+  await expect(result.locator('.benchmark-metrics > div').nth(0)).toContainText('平均奖励未知');
+  await expect(result.locator('.benchmark-metrics > div').nth(1)).toContainText('全正确比例未知');
+});
+
+test('legacy tracing protocol reports stay inspectable without publishing ability scores', async ({ page }) => {
+  await mockRuntime(page, false, 0, { connected: true }); await augmentBenchmarkFixture(page);
+  await page.addInitScript(() => {
+    const state = (window as Window & { __M1TERA_TEST_STATE__: FixtureState }).__M1TERA_TEST_STATE__;
+    const report = (suite: BenchmarkReport['suite'], model: string, adapterProtocol?: string): BenchmarkReport => ({
+      mode: 'live', status: 'completed', suite, name: '隔离历史报告 UI 验证', model, measuredAt: '2026-10-13T00:00:00Z',
+      source: { revision: 'isolated-history-fixture', upstream: 'https://fixture-source.test/', license: 'Fixture only', sourceFileHashes: {}, selectedIds: ['historical-case'], sampling: 'UI 验证用模拟数据', subsetSha256: '0'.repeat(64), ...(adapterProtocol ? { adapterProtocol } : {}) },
+      grader: 'Isolated UI fixture', settings: { browsing: false, maxAnswerTurns: 1, freshContextPerTask: true, sameModelForGrader: false }, total: 1, completed: 1,
+      cases: [{ id: 'historical-case', status: 'passed', answer: '{"answer":42,"evidence":[1]}', elapsedMs: 10, estimatedInputTokens: 20, usage: null }],
+      metrics: { correct: 1, incorrect: 0, notAttempted: 0, unknown: 0, graded: 1, accuracy: 1, accuracyGivenAttempted: 1, denominator: 'graded cases', knownInputTokens: 0, totalInputTokens: null, inputUsageUnknown: true, estimatedInputTokens: 20, elapsedMs: 10 },
+    });
+    state.benchmarkReports['legacy-tracing'] = report('longharness-tracing', 'legacy-tracing-model');
+    state.benchmarkReports['v2-tracing'] = report('longharness-tracing', 'v2-tracing-model', 'longharness-task-contract-v2');
+    state.benchmarkReports['corrected-tracing'] = report('longharness-tracing', 'corrected-tracing-model', 'longharness-task-contract-v3');
+    state.benchmarkReports['legacy-bfcl'] = report('bfcl-v4', 'legacy-bfcl-model');
+  });
+  await page.goto('/');
+  const dialog = await openBenchmarks(page);
+  const legacy = dialog.locator('.benchmark-history-item').filter({ hasText: 'legacy-tracing-model' });
+  await expect(legacy).toContainText('调试记录 · 输出协议不完整');
+  await expect(legacy).toContainText('未知'); await expect(legacy).not.toContainText('100.0%');
+  await legacy.click();
+  const result = dialog.getByRole('region', { name: '评测结果', exact: true });
+  await expect(result).toContainText('不计入能力成绩');
+  await expect(result.locator('.benchmark-metrics > div').nth(0)).toContainText('准确率未知');
+  await result.getByText('逐题详情', { exact: true }).click();
+  await result.locator('.benchmark-case-detail summary').click();
+  await expect(result.locator('.benchmark-case-detail pre')).toContainText('{"answer":42,"evidence":[1]}');
+  expect(await page.evaluate(() => (window as Window & { __M1TERA_TEST_STATE__: FixtureState }).__M1TERA_TEST_STATE__.benchmarkReports['legacy-tracing'].metrics.accuracy)).toBe(1);
+  const v2 = dialog.locator('.benchmark-history-item').filter({ hasText: 'v2-tracing-model' });
+  await expect(v2).toContainText('调试记录 · 输出协议不完整'); await expect(v2).not.toContainText('100.0%');
+  await v2.click();
+  await expect(result).toContainText('未完整说明原题的 answer 对象类型与 evidence 要求');
+  await expect(result.locator('.benchmark-metrics > div').nth(0)).toContainText('准确率未知');
+  const corrected = dialog.locator('.benchmark-history-item').filter({ hasText: 'corrected-tracing-model' });
+  await expect(corrected).toContainText('100.0%'); await corrected.click();
+  await expect(result.locator('.benchmark-metrics > div').nth(0)).toContainText('准确率100.0%');
+  await expect(result).not.toContainText('不计入能力成绩');
+  const bfcl = dialog.locator('.benchmark-history-item').filter({ hasText: 'legacy-bfcl-model' });
+  await expect(bfcl).toContainText('100.0%'); await bfcl.click();
+  await expect(result.locator('.benchmark-metrics > div').nth(0)).toContainText('准确率100.0%');
 });

@@ -1,0 +1,136 @@
+{
+  "mode": "live",
+  "status": "completed",
+  "suite": "longharness-tracing",
+  "name": "LongHarness 程序追踪",
+  "model": "gpt-6.1-sol",
+  "providerId": "chatgpt",
+  "measuredAt": "2026-10-13T06:12:14.409Z",
+  "source": {
+    "revision": "95c54a1646cc486f6702308a1e820cb361960fd4",
+    "upstream": "https://huggingface.co/datasets/StringNLP/longharness/tree/95c54a1646cc486f6702308a1e820cb361960fd4",
+    "license": "未声明；仅下载用于评测，不分发数据",
+    "sourceFileHashes": {
+      "manifest.jsonl": "28b7f2418982db028427f35fd79a119acf83b4a7c254b2ee69c9162e0c01df9a",
+      "DATA_CHECKSUMS.sha256": "e0566948242e72918c760aa42e39c1bbbc38e59f5dbe2f416665da4e77b6f822",
+      "tasks/program-execution-tracing/README.md": "5e132a34f8793ce627acf02d0193d782de6d2c25af17489ab25b4fbf7c98991f",
+      "README.md": "f5e0145805d15bcd6ecabdf1b0e957f6200ca8bf7fd73f5fe7da682e2192aefd",
+      "tasks/program-execution-tracing/contexts/sample-00000.md": "0131a30fad824e21ddb07c01619c100db583290788b10d5dd7c228a3470dba1b",
+      "tasks/program-execution-tracing/answers/sample-00000.json": "46078a0c8084273bce39b1d2c068af32d6175beb8af702f90a59b3abe314027e",
+      "tasks/program-execution-tracing/contexts/sample-00001.md": "49589e2e8b3a2b3885dfe6d1c56a4c8f644f67dfdbeece5903498b653a4a834b",
+      "tasks/program-execution-tracing/answers/sample-00001.json": "cb37bd875be5b40f3c63cba0226426e1f259a2e254cd6b4b0dd6d3313404f71b"
+    },
+    "selectedIds": [
+      "program-execution-tracing_00000",
+      "program-execution-tracing_00001"
+    ],
+    "adapterProtocol": "longharness-task-contract-v3",
+    "promptSha256": {
+      "program-execution-tracing_00000": "0854d04e108e45459eca66fedb34b5ed5cf5967dc643d600027d43b0d8df5758",
+      "program-execution-tracing_00001": "de535f2dbe0c771c1ed5aded3b4d72a15e8865d0fec6c1c2f99684009428eec1"
+    },
+    "sampling": "Official sample indices 0..1; fixed prefix of program-execution-tracing (50 instances); read-only context access, not the paper's full shell-enabled configuration",
+    "subsetSha256": "3311bcac6f3c3cd7e6134a32054782617450843244fd7bca060521d0212c1f55"
+  },
+  "grader": "依据固定 LongHarness score_one 独立实现的精确集合/JSON评分；程序追踪同时要求结果和证据。只读检索或单次完整上下文轨，预算及工具不同于论文全量实验。",
+  "settings": {
+    "browsing": false,
+    "maxAnswerTurns": 1,
+    "freshContextPerTask": true,
+    "sameModelForGrader": false,
+    "profile": "direct",
+    "tools": [],
+    "baseTools": [],
+    "reasoningEffort": "low",
+    "runTimeoutSeconds": 120,
+    "tokenBudget": 300000,
+    "tokenBudgetScope": "answer",
+    "budgetAccounting": "completed-response",
+    "harness": {
+      "offloadToolResults": true,
+      "toolResultTokenLimit": 4096,
+      "maxModelTurns": 24,
+      "runTimeoutSeconds": 300
+    }
+  },
+  "total": 2,
+  "completed": 2,
+  "cases": [
+    {
+      "id": "program-execution-tracing_00000",
+      "status": "passed",
+      "elapsedMs": 13421,
+      "estimatedInputTokens": 418414,
+      "usage": {
+        "input": 127285,
+        "output": 162,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 127285,
+        "source": "provider"
+      },
+      "answer": "{\"answer\":{\"aa\":[\"A\",\"B\",\"C\",\"D\",\"E\",\"F\",\"G\",\"H\"],\"bb\":{\"A\":0,\"B\":1,\"C\":1,\"D\":2,\"E\":2,\"F\":2,\"G\":3,\"H\":3},\"cc\":[\"G\",\"H\"],\"dd\":8},\"evidence\":[161,211,139,316,248,32,56,81]}",
+      "calls": [],
+      "knownUsage": {
+        "input": 127285,
+        "output": 162,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 127285,
+        "source": "provider"
+      },
+      "observedTools": [],
+      "requestCount": 1,
+      "toolCallCount": 0,
+      "answerExact": true,
+      "evidenceExact": true
+    },
+    {
+      "id": "program-execution-tracing_00001",
+      "status": "passed",
+      "elapsedMs": 13321,
+      "estimatedInputTokens": 422717,
+      "usage": {
+        "input": 127864,
+        "output": 150,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 127864,
+        "source": "provider"
+      },
+      "answer": "{\"answer\":{\"aa\":[\"auth\",\"db\",\"cache\",\"jobs\",\"proxy\",\"api\",\"worker\",\"ui\"],\"bb\":[[\"auth\",\"db\"],[\"cache\",\"jobs\",\"proxy\"],[\"api\",\"worker\"],[\"ui\"]],\"cc\":[\"auth\",\"db\"],\"dd\":8},\"evidence\":[165,86,155,220,260,45,20,305]}",
+      "calls": [],
+      "knownUsage": {
+        "input": 127864,
+        "output": 150,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 127864,
+        "source": "provider"
+      },
+      "observedTools": [],
+      "requestCount": 1,
+      "toolCallCount": 0,
+      "answerExact": true,
+      "evidenceExact": true
+    }
+  ],
+  "metrics": {
+    "correct": 2,
+    "incorrect": 0,
+    "notAttempted": 0,
+    "unknown": 0,
+    "graded": 2,
+    "accuracy": 1,
+    "accuracyGivenAttempted": 1,
+    "denominator": "graded cases",
+    "knownInputTokens": 255149,
+    "totalInputTokens": 255149,
+    "inputUsageUnknown": false,
+    "totalOutputTokens": 312,
+    "estimatedInputTokens": 841131,
+    "requestCount": 2,
+    "toolCallCount": 0,
+    "elapsedMs": 26754
+  }
+}

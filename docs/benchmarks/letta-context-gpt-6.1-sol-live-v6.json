@@ -1,0 +1,891 @@
+{
+  "mode": "live",
+  "status": "completed",
+  "suite": "letta-context",
+  "name": "Letta Context-Bench 文件检索",
+  "model": "gpt-6.1-sol",
+  "providerId": "chatgpt",
+  "measuredAt": "2026-10-13T05:01:46.695Z",
+  "source": {
+    "revision": "a96a3b63b206feef23af9237a1a64a93d1f52aef",
+    "upstream": "https://github.com/langchain-ai/deepagents/tree/a96a3b63b206feef23af9237a1a64a93d1f52aef/libs/evals/harbor_adapters/contextbench/vendor",
+    "license": "Apache-2.0; Letta letta-evals filesystem-cloud, preserved vendored LICENSE; not Filesystem v2",
+    "sourceFileHashes": {
+      "filesystem_cloud.jsonl": "f809bd45f7a22cb3bd4f3423bd9c4de8d40cc8bcbc2d1eddcd793ecb33f2a932",
+      "rubric.txt": "9c124fc9cc34841d1bc0c601d13a96246986ca4caaa7730eb3abbd6e8761b385",
+      "LICENSE": "1639ff41bb09c4c10f97d8f1043d980670ca6ed25682bf09286a26c070549bc4",
+      "files/addresses.txt": "71b2686aa482bee96e7b77554a8f68a639d77a81a883ac78c35baaee717b4705",
+      "files/bank_accounts.txt": "230667663fb1b1d700e8136c0f5f7a65966a07e33776236675f4b8d49fde7cc0",
+      "files/credit_cards.txt": "68451664f3dea44eb023d8719d9bdac48fdebc863b3784d7a285b113f22fb48e",
+      "files/employments.txt": "77301b100025de3c534743376f4b148f514d0c69958d768637c91dc193f12544",
+      "files/insurance_policies.txt": "9e601fa52a4624a1169bdd33b1e09f059a82f38caa1887e61e96302ad60ba122",
+      "files/internet_accounts.txt": "009a948d6ca659281a5840b4a0d137474dd1eba44a0c04a395b0095223dc60a6",
+      "files/medical_records.txt": "7feabab89682a87c6ac5e2a94f66ab375c7151ea33fab451b2ce6db3964f95b6",
+      "files/people.txt": "ec633879861d9c1b49c492b1d9c5656bcb1f22cebd54a3a2afcafab51c39ab97",
+      "files/pets.txt": "49a8b9a01e32e94c71c3a1ac32d23d03fe1282938bd741a2b0bb48ec09cf3338",
+      "files/vehicles.txt": "c7ee984009861a10eabbce9ec0699bca4017a330b01740680ed6c8d9766c8e17"
+    },
+    "selectedIds": [
+      "cb-cloud-0",
+      "cb-cloud-1",
+      "cb-cloud-2"
+    ],
+    "sampling": "Fixed zero-based prefix 3/100 of Letta filesystem-cloud; full 10-file corpus per task; one trial per task; no required_files / verification_query supplied to agent",
+    "subsetSha256": "34ada4602e8c1b2c04937b8938681bb86135307766b207e85629e83443c4f2f7"
+  },
+  "grader": "Letta filesystem_cloud 官方 rubric，另次同模型 JSON reward 评分；0/0.5/1，存在自评偏差。不是 Filesystem v2 或官方全榜成绩。",
+  "settings": {
+    "browsing": false,
+    "maxAnswerTurns": 24,
+    "freshContextPerTask": true,
+    "sameModelForGrader": true,
+    "profile": "agent",
+    "tools": [
+      "list_directory",
+      "read_file",
+      "search_file"
+    ],
+    "baseTools": [
+      "list_directory",
+      "read_file",
+      "search_file"
+    ],
+    "reasoningEffort": "low",
+    "runTimeoutSeconds": 300,
+    "tokenBudget": 300000,
+    "tokenBudgetScope": "answer",
+    "budgetAccounting": "completed-response",
+    "harness": {
+      "offloadToolResults": true,
+      "toolResultTokenLimit": 4096,
+      "maxModelTurns": 24,
+      "runTimeoutSeconds": 300
+    }
+  },
+  "total": 3,
+  "completed": 3,
+  "cases": [
+    {
+      "id": "cb-cloud-0",
+      "status": "passed",
+      "elapsedMs": 77666,
+      "estimatedInputTokens": 171445,
+      "usage": {
+        "source": "provider",
+        "input": 131197,
+        "output": 1610,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 131197
+      },
+      "answer": "**Linda Robbins, the person with the highest total bank balance in Victor’s owner’s state, owns more vehicles: 3 versus 2.**\n\n| Pet owner’s state | Resident with highest total bank balance | Total balance | Vehicles owned |\n|---|---|---:|---:|\n| Eduardo — Connecticut | Susan Booker (`pers-0416`) | $179,614.98 | 2 |\n| Victor — Montana | Linda Robbins (`pers-0111`) | $173,272.01 | 3 |\n\nLinda Robbins therefore owns **one more vehicle** than Susan Booker.",
+      "calls": [
+        {
+          "name": "list_directory",
+          "arguments": {}
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "Eduardo"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "Victor"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "addresses.txt",
+            "query": "pers-0122"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "addresses.txt",
+            "query": "pers-0118"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "addresses.txt",
+            "query": "state: Connecticut",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "addresses.txt",
+            "query": "state: Montana",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "addresses.txt",
+            "query": "state: Connecticut",
+            "offset": 143644,
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0023",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0037",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0044",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0054",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0075",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0122",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0153",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0191",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0204",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0229",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0234"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0237"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0257"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0342"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0370"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0393"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0395"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0416"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0418"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0428"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0434"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0453"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0467"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0474"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0487"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0005"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0021"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0042"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0061"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0104"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0111"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0118"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0211"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0222"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0227"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0260"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0332"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0387"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0396"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0432"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0436"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0461"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "bank_accounts.txt",
+            "query": "pers-0490"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0416",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0111",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "people.txt",
+            "query": "pers-0416"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "people.txt",
+            "query": "pers-0111"
+          }
+        }
+      ],
+      "knownUsage": {
+        "source": "provider",
+        "input": 131197,
+        "output": 1610,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 131197
+      },
+      "observedTools": [
+        "list_directory",
+        "read_file",
+        "search_file"
+      ],
+      "requestCount": 11,
+      "toolCallCount": 55,
+      "graderUsage": {
+        "input": 749,
+        "output": 31,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 749,
+        "source": "provider"
+      },
+      "graderKnownUsage": {
+        "input": 749,
+        "output": 31,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 749,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 821,
+      "reward": 1
+    },
+    {
+      "id": "cb-cloud-1",
+      "status": "passed",
+      "elapsedMs": 39403,
+      "estimatedInputTokens": 31736,
+      "usage": {
+        "source": "provider",
+        "input": 23873,
+        "output": 605,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 23873
+      },
+      "answer": "**Tammy Roberts (pers-0108)** is the answer. She owns **4 vehicles** and was born on **June 10, 1974**, making her the oldest among those tied for the most vehicles in **Oklahoma**, the state where Dawn’s owner lives.\n\nThe four-vehicle tie was between:\n- Tammy Roberts — born June 10, 1974\n- Jason Ruiz — born September 21, 1994\n- Matthew Winters — born March 13, 2000\n- Christopher Beck — born June 10, 2006",
+      "calls": [
+        {
+          "name": "list_directory",
+          "arguments": {}
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "Dawn"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "addresses.txt",
+            "query": "pers-0401"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "addresses.txt",
+            "query": "state: Oklahoma",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0018"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0098"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0108"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0146"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0298"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0343"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0350"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0372"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0401"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0402"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0411"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "pers-0416"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "people.txt",
+            "query": "pers-0018"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "people.txt",
+            "query": "pers-0108"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "people.txt",
+            "query": "pers-0146"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "people.txt",
+            "query": "pers-0350"
+          }
+        }
+      ],
+      "knownUsage": {
+        "source": "provider",
+        "input": 23873,
+        "output": 605,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 23873
+      },
+      "observedTools": [
+        "list_directory",
+        "read_file",
+        "search_file"
+      ],
+      "requestCount": 8,
+      "toolCallCount": 20,
+      "graderUsage": {
+        "input": 731,
+        "output": 31,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 731,
+        "source": "provider"
+      },
+      "graderKnownUsage": {
+        "input": 731,
+        "output": 31,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 731,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 795,
+      "reward": 1
+    },
+    {
+      "id": "cb-cloud-2",
+      "status": "passed",
+      "elapsedMs": 34309,
+      "estimatedInputTokens": 24744,
+      "usage": {
+        "source": "provider",
+        "input": 17843,
+        "output": 446,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 17843
+      },
+      "answer": "George Peterson (ID: pers-0411) lives in Oklahoma, the same state as the owner of vehicle **7D U3378**, and does not own any pets.",
+      "calls": [
+        {
+          "name": "list_directory",
+          "arguments": {}
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "vehicles.txt",
+            "query": "7D U3378"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "addresses.txt",
+            "query": "pers-0401"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "addresses.txt",
+            "query": "state: Oklahoma",
+            "limit": 20
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "pers-0018"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "pers-0098"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "pers-0108"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "pers-0146"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "pers-0298"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "pers-0343"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "pers-0350"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "pers-0372"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "pers-0401"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "pers-0402"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "pers-0411"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "pets.txt",
+            "query": "pers-0416"
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "people.txt",
+            "query": "pers-0411"
+          }
+        }
+      ],
+      "knownUsage": {
+        "source": "provider",
+        "input": 17843,
+        "output": 446,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 17843
+      },
+      "observedTools": [
+        "list_directory",
+        "read_file",
+        "search_file"
+      ],
+      "requestCount": 8,
+      "toolCallCount": 17,
+      "graderUsage": {
+        "input": 644,
+        "output": 26,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 644,
+        "source": "provider"
+      },
+      "graderKnownUsage": {
+        "input": 644,
+        "output": 26,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 644,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 702,
+      "reward": 1
+    }
+  ],
+  "metrics": {
+    "correct": 3,
+    "incorrect": 0,
+    "notAttempted": 0,
+    "unknown": 0,
+    "graded": 3,
+    "accuracy": 1,
+    "accuracyGivenAttempted": 1,
+    "meanReward": 1,
+    "denominator": "graded cases",
+    "knownInputTokens": 175037,
+    "totalInputTokens": 175037,
+    "inputUsageUnknown": false,
+    "totalOutputTokens": 2749,
+    "estimatedInputTokens": 230243,
+    "requestCount": 27,
+    "toolCallCount": 92,
+    "elapsedMs": 153651
+  }
+}

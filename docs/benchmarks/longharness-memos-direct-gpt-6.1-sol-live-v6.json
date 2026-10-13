@@ -1,0 +1,129 @@
+{
+  "mode": "live",
+  "status": "completed",
+  "suite": "longharness-memos",
+  "name": "LongHarness 冲突备忘录",
+  "model": "gpt-6.1-sol",
+  "providerId": "chatgpt",
+  "measuredAt": "2026-10-13T05:29:29.783Z",
+  "source": {
+    "revision": "95c54a1646cc486f6702308a1e820cb361960fd4",
+    "upstream": "https://huggingface.co/datasets/StringNLP/longharness/tree/95c54a1646cc486f6702308a1e820cb361960fd4",
+    "license": "未声明；仅下载用于评测，不分发数据",
+    "sourceFileHashes": {
+      "manifest.jsonl": "28b7f2418982db028427f35fd79a119acf83b4a7c254b2ee69c9162e0c01df9a",
+      "DATA_CHECKSUMS.sha256": "e0566948242e72918c760aa42e39c1bbbc38e59f5dbe2f416665da4e77b6f822",
+      "tasks/outlier-memo-detection/contexts/sample-00000.md": "07ae94ead941148280290f014d5cde70859448ec71fe1f93552088d38253f699",
+      "tasks/outlier-memo-detection/answers/sample-00000.json": "7652f016e7c0832c35b52b5c446a46953b1427cd539bd9f0df1415c7c5686396",
+      "tasks/outlier-memo-detection/contexts/sample-00001.md": "4073cffa952a5b3b0ec4e2ff9e73980b1684067c51ae1a3e4108e8ae582d1a81",
+      "tasks/outlier-memo-detection/answers/sample-00001.json": "fbe0256dfe8ed2e955bee755c1ebac289fd7003b5dde6455e04f62b01d316846"
+    },
+    "selectedIds": [
+      "outlier-memo-detection_00000",
+      "outlier-memo-detection_00001"
+    ],
+    "sampling": "Official sample indices 0..1; fixed prefix of outlier-memo-detection (50 instances); read-only context access, not the paper's full shell-enabled configuration",
+    "subsetSha256": "700ee3df9ac3d1cc5005fdc6169f1798fcdc451bae1f0725779d8a2962a86878"
+  },
+  "grader": "依据固定 LongHarness score_one 独立实现的精确集合/JSON评分；程序追踪同时要求结果和证据。只读检索或单次完整上下文轨，预算及工具不同于论文全量实验。",
+  "settings": {
+    "browsing": false,
+    "maxAnswerTurns": 1,
+    "freshContextPerTask": true,
+    "sameModelForGrader": false,
+    "profile": "direct",
+    "tools": [],
+    "baseTools": [],
+    "reasoningEffort": "low",
+    "runTimeoutSeconds": 120,
+    "tokenBudget": 300000,
+    "tokenBudgetScope": "answer",
+    "budgetAccounting": "completed-response",
+    "harness": {
+      "offloadToolResults": true,
+      "toolResultTokenLimit": 4096,
+      "maxModelTurns": 24,
+      "runTimeoutSeconds": 300
+    }
+  },
+  "total": 2,
+  "completed": 2,
+  "cases": [
+    {
+      "id": "outlier-memo-detection_00000",
+      "status": "failed",
+      "elapsedMs": 46266,
+      "estimatedInputTokens": 306438,
+      "usage": {
+        "input": 61968,
+        "output": 995,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 61968,
+        "source": "provider"
+      },
+      "answer": "Final Answer: [M-027, M-060, M-129, M-137, M-157, M-288, M-306, M-352, M-372, M-409, M-495, M-538, M-548, M-607, M-688]",
+      "calls": [],
+      "knownUsage": {
+        "input": 61968,
+        "output": 995,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 61968,
+        "source": "provider"
+      },
+      "observedTools": [],
+      "requestCount": 1,
+      "toolCallCount": 0,
+      "answerExact": false,
+      "error": "作答未满足完整实例的 exact 规则。"
+    },
+    {
+      "id": "outlier-memo-detection_00001",
+      "status": "failed",
+      "elapsedMs": 111683,
+      "estimatedInputTokens": 306523,
+      "usage": {
+        "input": 62014,
+        "output": 2658,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 62014,
+        "source": "provider"
+      },
+      "answer": "Final Answer: [M-244, M-276, M-357, M-362, M-394, M-408, M-436, M-458, M-487, M-508, M-571, M-590, M-610, M-654, M-667]",
+      "calls": [],
+      "knownUsage": {
+        "input": 62014,
+        "output": 2658,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 62014,
+        "source": "provider"
+      },
+      "observedTools": [],
+      "requestCount": 1,
+      "toolCallCount": 0,
+      "answerExact": false,
+      "error": "作答未满足完整实例的 exact 规则。"
+    }
+  ],
+  "metrics": {
+    "correct": 0,
+    "incorrect": 2,
+    "notAttempted": 0,
+    "unknown": 0,
+    "graded": 2,
+    "accuracy": 0,
+    "accuracyGivenAttempted": 0,
+    "denominator": "graded cases",
+    "knownInputTokens": 123982,
+    "totalInputTokens": 123982,
+    "inputUsageUnknown": false,
+    "totalOutputTokens": 3653,
+    "estimatedInputTokens": 612961,
+    "requestCount": 2,
+    "toolCallCount": 0,
+    "elapsedMs": 157982
+  }
+}

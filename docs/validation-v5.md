@@ -60,7 +60,7 @@ BFCL v4 固定 10 道 simple_python + 10 道 multiple 原题，本地 AST 评分
 
 原生选择评测集后按回车曾提交表单；最终界面改为仅“开始评测”按钮启动，选择、题数和 implicit submit 均不发送请求，按钮键盘激活仍可用。这项修复不改变已经测量的 harness / 模型管线，没有重跑样本。运行账户保持连接，没有为重新打包读取或搬运凭据。
 
-其他平台构建、独立无 Node 机器安装、公开签名与公证仍未验收。当前包携带 Node，API key / OAuth 只在后端内存，退出后需重新连接。产物大小、SHA256 与锁文件摘要见 [产物清单](release-artifacts.json)，[0.4.0](release-artifacts-0.4.0.json) 保留为历史清单。
+其他平台构建、独立无 Node 机器安装、公开签名与公证仍未验收。当前包携带 Node，API key / OAuth 只在后端内存，退出后需重新连接。产物大小、SHA256 与锁文件摘要见 [产物清单](release-artifacts-0.5.0.json)，[0.4.0](release-artifacts-0.4.0.json) 保留为历史清单。
 
 包内 smoke 完成 6 次 localhost fixture 聊天，核验登录前 BFCL/SimpleQA 拒绝、策略保存、RPC 去重、Unicode 分页、轮次暂停、artifact 原文 hash 与延迟读取、重启恢复但密钥不恢复。256 intent 上限属于包内 reducer 检查，没有真的执行 256 个工具。没有生成模拟公共 benchmark 分数，临时数据与进程均已清理；此检查不能代替独立无 Node 机器安装。
 

@@ -1,0 +1,127 @@
+{
+  "mode": "live",
+  "status": "completed",
+  "suite": "longharness-constraint",
+  "name": "LongHarness 条件搜索",
+  "model": "gpt-6.1-sol",
+  "providerId": "chatgpt",
+  "measuredAt": "2026-10-13T05:11:28.692Z",
+  "source": {
+    "revision": "95c54a1646cc486f6702308a1e820cb361960fd4",
+    "upstream": "https://huggingface.co/datasets/StringNLP/longharness/tree/95c54a1646cc486f6702308a1e820cb361960fd4",
+    "license": "未声明；仅下载用于评测，不分发数据",
+    "sourceFileHashes": {
+      "manifest.jsonl": "28b7f2418982db028427f35fd79a119acf83b4a7c254b2ee69c9162e0c01df9a",
+      "DATA_CHECKSUMS.sha256": "e0566948242e72918c760aa42e39c1bbbc38e59f5dbe2f416665da4e77b6f822",
+      "tasks/constraint-solving-search/contexts/sample-00000.md": "236d0554e0489b3020a3d31c4b72b3a457974383b8d1dd513aebc8409ed6dc3e",
+      "tasks/constraint-solving-search/answers/sample-00000.json": "45e149b65371419e44dfa9e02394af2b7a6c7e4dce85363201168cddc231983e",
+      "tasks/constraint-solving-search/contexts/sample-00001.md": "0c600f25bf63804ca832d27cae1ba1a864d83f22ba66d21b71cc7886e701dbc0",
+      "tasks/constraint-solving-search/answers/sample-00001.json": "9130cf0b1c31924cef295f96ca166eab3a2bf3d7860137d188dcb2893c366b6e"
+    },
+    "selectedIds": [
+      "constraint-solving-search_00000",
+      "constraint-solving-search_00001"
+    ],
+    "sampling": "Official sample indices 0..1; fixed prefix of constraint-solving-search (50 instances); read-only context access, not the paper's full shell-enabled configuration",
+    "subsetSha256": "96356c45a86b4af8cfa580be4a7d7573628b81a08b3fc5e47b5dceeeaceb3fd9"
+  },
+  "grader": "依据固定 LongHarness score_one 独立实现的精确集合/JSON评分；程序追踪同时要求结果和证据。只读检索或单次完整上下文轨，预算及工具不同于论文全量实验。",
+  "settings": {
+    "browsing": false,
+    "maxAnswerTurns": 1,
+    "freshContextPerTask": true,
+    "sameModelForGrader": false,
+    "profile": "direct",
+    "tools": [],
+    "baseTools": [],
+    "reasoningEffort": "low",
+    "runTimeoutSeconds": 120,
+    "tokenBudget": 300000,
+    "tokenBudgetScope": "answer",
+    "budgetAccounting": "completed-response",
+    "harness": {
+      "offloadToolResults": true,
+      "toolResultTokenLimit": 4096,
+      "maxModelTurns": 24,
+      "runTimeoutSeconds": 300
+    }
+  },
+  "total": 2,
+  "completed": 2,
+  "cases": [
+    {
+      "id": "constraint-solving-search_00000",
+      "status": "passed",
+      "elapsedMs": 14256,
+      "estimatedInputTokens": 483389,
+      "usage": {
+        "input": 107315,
+        "output": 210,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 107315,
+        "source": "provider"
+      },
+      "answer": "{\"matches\":[\"P-018\",\"P-076\",\"P-096\",\"P-101\",\"P-155\"]}",
+      "calls": [],
+      "knownUsage": {
+        "input": 107315,
+        "output": 210,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 107315,
+        "source": "provider"
+      },
+      "observedTools": [],
+      "requestCount": 1,
+      "toolCallCount": 0,
+      "answerExact": true
+    },
+    {
+      "id": "constraint-solving-search_00001",
+      "status": "passed",
+      "elapsedMs": 16076,
+      "estimatedInputTokens": 479414,
+      "usage": {
+        "input": 106910,
+        "output": 297,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 106910,
+        "source": "provider"
+      },
+      "answer": "{\"matches\":[\"P-024\",\"P-082\",\"P-091\",\"P-131\",\"P-154\"]}",
+      "calls": [],
+      "knownUsage": {
+        "input": 106910,
+        "output": 297,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 106910,
+        "source": "provider"
+      },
+      "observedTools": [],
+      "requestCount": 1,
+      "toolCallCount": 0,
+      "answerExact": true
+    }
+  ],
+  "metrics": {
+    "correct": 2,
+    "incorrect": 0,
+    "notAttempted": 0,
+    "unknown": 0,
+    "graded": 2,
+    "accuracy": 1,
+    "accuracyGivenAttempted": 1,
+    "denominator": "graded cases",
+    "knownInputTokens": 214225,
+    "totalInputTokens": 214225,
+    "inputUsageUnknown": false,
+    "totalOutputTokens": 507,
+    "estimatedInputTokens": 962803,
+    "requestCount": 2,
+    "toolCallCount": 0,
+    "elapsedMs": 30372
+  }
+}

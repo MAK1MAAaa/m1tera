@@ -1,15 +1,36 @@
 # Harness 评测
 
-首版集成两套公开数据的固定小规模原题评测。它们用于分开观察工具调用准确性和事实问答结果，不等同于完整、多轮 Agent 能力，也不申报官方排行榜。
+当前集成七套可选评测：两个历史单轮集合、Letta Context-Bench 的 Filesystem cloud，以及 LongHarness 四套长上下文任务。它们分别观察工具调用、知识回答、文件检索和上下文策略，不合成为“Agent 总分”，不申报官方排行榜。真实评测复用聊天的 Pi harness factory；fixture 只用于流程验证，能力指标始终为 null。
 
-| 评测 | 固定子集 | 运行和评分 |
-| --- | --- | --- |
-| BFCL v4 | `simple_python_0..9` 与 `multiple_0..9`，20 题 | 同一 Harness 的首个模型响应；工具只有原题 schema，函数不会访问系统。TypeScript 移植官方 Python 单调用 AST 规则；本地移植成绩。 |
-| SimpleQA | 官方 Python `random.Random(0).sample(examples,20)` 的 20 题 | 每题空历史、空系统提示词、无工具、无浏览。完成回答后另一次独立请求使用完整官方 A/B/C grader。当前答题与评分模型相同，存在自评偏差。 |
+## 数据、默认题量与评分
 
-题目、schema、原答案均来自官方来源，未替换问题或改题。`data.ts` 只改变本地存储结构；标准答案不会发送给答题 Agent，只用于本地 AST 评分或单独的 SimpleQA 评分请求。每题使用新上下文，不加载项目指令、技能、记忆或先前评测答案。低于 20 题时，BFCL 均匀取两类前缀，SimpleQA 取已固定抽样的前缀；这些更小的跑次不等同于官方对相应题数重新随机抽样。
+| Suite ID | 衡量能力 | 默认 / 可选范围 | 采样与评分 | 许可 / 数据引入 |
+| --- | --- | --- | --- | --- |
+| `bfcl-v4` | 工具选择及参数 | 20 / 1–20 | 两类前缀均匀取样；单轮 AST 移植，官方 Python 可复核 | Apache-2.0；固定 20 题随应用携带 |
+| `simpleqa` | 无浏览事实问答 | 20 / 1–20 | 官方 seed=0 固定 20 题抽样的前缀；另次同模型 A/B/C grader | MIT；固定 20 题与官方模板随应用携带 |
+| `letta-context` | 十文件、多跳关联检索 | 3 / 1–100 | `cb-cloud-0...` 固定前缀，每题完整十文件；官方 0 / 0.5 / 1 rubric | Apache-2.0；题目和语料外置下载，rubric 与许可保留 |
+| `longharness-constraint` | 完整条件匹配集合 | 2 / 1–50 | 官方 0 号起固定前缀；完整人名 ID 集合 exact | 未声明；原始数据外置下载，不分发 |
+| `longharness-memos` | 跨备忘录矛盾 | 2 / 1–50 | 同上；完整 memo ID 集合 exact，拒绝重复 | 同上 |
+| `longharness-tracing` | 八步程序结果及证据 | 2 / 1–50 | 同上；最终 JSON 和证据同时 exact，另报 answer-only | 同上 |
+| `longharness-pairs` | 程序的语义配对 | 2 / 1–50 | 同上；规范化无序整数对后完整集合 exact | 同上 |
 
-版本、完整源文件 SHA256、固定子集 SHA256 和题目 ID 见 [sources.json](sources.json)。BFCL 来源固定 `6ea57973c7a6097fd7c5915698c54c17c5b1b6c8`，Apache-2.0；SimpleQA 源码固定 `652c89d0ca9df547706735883097e9537d40dc47`，MIT。官方 CSV 以下载 SHA256 固定，因为下载 URL 本身没有 revision。完整许可证保存在 `licenses/`，并随编译后的数据模块携带。
+BFCL 原子集是 `simple_python_0..9` 和 `multiple_0..9`。测试函数仅记录调用，不访问宿主、网络或真实 API。SimpleQA 使用官方 Python `random.Random(0).sample(examples,20)` 固定原题；减少题数取该抽样前缀，不是重新随机抽样。[固定版本与源文件 SHA](sources.json)
+
+### Letta Context-Bench
+
+来源为 Deep Agents 固定提交 `a96a3b63b206feef23af9237a1a64a93d1f52aef` 中保留许可的 Letta `filesystem_cloud`：100 题、完整十文件。每题都提供 people、pets、vehicles、bank accounts、credit cards、employments、addresses、insurance、internet、medical 原始语料，不按题目提示预选文件；`required_files`、`verification_query` 和标准答案不进入作答工具或 prompt。[固定源码](https://github.com/langchain-ai/deepagents/tree/a96a3b63b206feef23af9237a1a64a93d1f52aef/libs/evals/harbor_adapters/contextbench/vendor)
+
+模型完成任务后另发一次 grader 请求，使用官方 rubric 并要求有限 JSON reward：正确为 1，错误或失败尝试为 0，明确拒绝且未尝试为 0.5。`meanReward` 是已判分题目的奖励均值，`accuracy` 是 reward=1 的比例；0.5 不算完整正确。当前答题与 judge 使用同一已选模型，单次 rollout；不等同于官方不同 judge、三次 rollout 的 mean / avg@3，也不等同于 Letta Filesystem v2 榜单。评分输出非法或请求失败为未知。
+
+### LongHarness
+
+完整 200 题来自 HF revision `95c54a1646cc486f6702308a1e820cb361960fd4`，每套 50 题；根 manifest SHA-256 为 `28b7f2418982db028427f35fd79a119acf83b4a7c254b2ee69c9162e0c01df9a`。先校验 manifest 与官方 checksum 清单，再校验每份 context 的大小、路径、内容 SHA 和 gold SHA。缓存按内容摘要命名，拒绝符号链接、污染和超限；下载或校验失败不会改用 fixture。[固定公共数据](https://huggingface.co/datasets/StringNLP/longharness/tree/95c54a1646cc486f6702308a1e820cb361960fd4)
+
+模型只获得选中实例的原文 `context.md` 及其任务指令。标准答案、带答案路径的 manifest、其他实例和官方 scorer 均不可读。数据卡和 GitHub 未声明明确再分发许可证，因此题目、答案和官方评分源码只用于外置下载评测，不加入仓库或安装包。
+
+程序追踪的 context 本身只要求程序输出，任务级 README 另要求 JSON 对象类型的 `answer` 与八个支持 cell ID 的 `evidence`；适配器独立表述这一公开要求，并外置校验原任务说明 SHA。新报告记录 `longharness-task-contract-v3` 与每题基础任务指令的 `promptSha256`，该摘要不包括运行 wrapper、语料和工具 schema。缺少字段或对象类型说明的追踪报告保留为调试记录，不计能力成绩。真实缓存核对证明其他三类任务的原、新 prompt 字节相同。[协议核验](../docs/benchmarks/longharness-protocol-v3-check.json)
+
+本地评分器独立实现固定 `score_one` 规则，非模型 judge。接受完整 JSON、单个完整 JSON 围栏、memo 原指令中的 `Final Answer: [M-…]`；不猜取解释文本中的答案，不执行上下文代码，不做数值或 ID 语义转换。程序追踪同时要求最终结果和无重复证据集合，结果正确而证据错误只计辅助 answer-only。原版 Python scorer 下载到临时目录后先核验 SHA，再对照 60 个合成正反例，exact / answer-only / evidence **60/60 一致**；这不是模型成绩。[接入核验](../docs/benchmarks/adapter-options-2026-10-13.md)
 
 BFCL 的字符串归一、可选参数、字典允许值、函数名 `.` 到 `_` 转换均按官方评分规则实现。JavaScript JSON 解析不保留 Python `int` 与 `float` 的数值字面量差别，因此这份移植不作为官方 BFCL 分数。`official-bfcl-ast-checker.py` 是该提交的未改动官方源码；60 份正确/缺必需参数/额外参数的预期结果由这份 Python 代码生成，作为本地移植的行为对照。Python-only 依赖 shim 只提供官方 enum、OpenAI 函数名转换标记和未使用的 Java/JavaScript 导入，不替换评分函数。
 
@@ -21,24 +42,50 @@ python3 benchmarks/check-bfcl-oracle.py --report docs/benchmarks/bfcl-v4-gpt-6.1
 
 核验输出 `mode: official-scorer-on-live-predictions`，逐题保留官方实际判定、错误和本地移植判定是否一致。仅接受同一固定数据 revision/hash 下的真实 BFCL 报告；未知或未完成预测仍为未知，不补成错题。它核验的是保存后的规范化 calls，未保留原始 API wire JSON 的数值字面量，也不是完整官方排行榜提交。无参数运行仍是 60 份离线 fixture 对照，`model_score: null`。
 
-## 运行
+## 运行与上下文轨
 
-桌面应用的评测入口复用当前已启用模型和后端内存凭据。兼容接口也可在独立 CLI 进程中运行：
+桌面评测入口使用当前启用模型与后端内存凭据。兼容接口可从独立 CLI 进程运行；ChatGPT 订阅账户通过桌面应用的独立授权运行，不把令牌复制到其他 Agent 产品或 CLI。
 
 ```sh
-node --import tsx scripts/benchmark.ts --probe
-node --import tsx scripts/benchmark.ts --suite all --limit 20
+npm run benchmark -- --probe
+npm run benchmark -- --suite bfcl-v4 --limit 20
+npm run benchmark -- --suite letta-context --limit 3
+npm run benchmark -- --suite longharness-tracing --limit 2 --profile agent
+npm run benchmark -- --suite longharness-tracing --limit 2 --profile direct
+npm run benchmark -- --suite all
 ```
 
-CLI 只读取本进程 `M1TERA_BENCHMARK_API_KEY` 或 `OPENAI_API_KEY`。接口和模型可通过 `M1TERA_BENCHMARK_BASE_URL`、`M1TERA_BENCHMARK_MODEL` 或 `--base-url`、`--model` 指定；协议通过 `--api-format responses|chat-completions` 指定。不要把 API key 放入命令参数或聊天。CLI 不读取已有 Codex 认证或桌面应用私有凭据。无凭据时 `--probe` 明确报告 blocked、成绩未知，并以退出码 2 结束。`--output` 指定结果目录，默认 `docs/benchmarks/`。ChatGPT 订阅账户通过桌面应用自己的授权后运行。
+省略 `--limit` 时按各套默认题数运行；`all` 默认七套、51 题，包含多轮请求和独立 grader 调用。显式 limit 会应用到所有选中集合，必须符合各套范围。`--profile direct` 仅适用于 LongHarness；在 `all` 中只改变 LongHarness，其余集合仍用原轨。`--output` 指定报告目录，默认 `docs/benchmarks/`。
 
-SimpleQA 20 题包含 20 次答题和 20 次评分请求；BFCL 20 题包含 20 次答题请求。报告记录实际 usage（含缓存输入）与分开的 token 估算。任意请求缺 usage 时总 usage 记未知，并另外保留已有 usage 的小计；不得用零填补未知。评分请求失败、输出不是严格 A/B/C、取消或无法调用模型时对应成绩未知，不能作为错题或正确题。报告同时列出计划题数、已处理题数、已评分题数和未知数；准确率分母为已评分题数。`mode: fixture` 的测试回调永远不输出能力准确率。
+| 轨道 | 可见上下文与工具 | 运行预算 |
+| --- | --- | --- |
+| BFCL / SimpleQA | 首个模型响应；原题 schema 或 0 工具；无浏览 | 每次最多 1 次模型请求；单请求最多 120 秒 |
+| Letta / LongHarness Agent | 原题 prompt，加虚拟题目文件；初始目录/分页读取/字面搜索，外置后本题 `read_artifact` | 默认 24 次模型请求、300 秒；可调整至上限 24 轮 / 600 秒 |
+| LongHarness Direct | 完整选中 context 一次放入 prompt，0 工具 | 1 次模型请求；单请求最多 120 秒 |
 
-## 暂未采用的常见评测
+文件工具只访问本题闭包内的完整语料，不能访问宿主路径、网络或命令。读取按 Unicode 字符分页，默认 4096、最多 16384 字符；搜索为大小写敏感的字面量，默认 10、最多 20 个命中。每题空系统提示词、新历史，不加载用户会话、Skills、记忆或项目指令。
 
-- [GAIA](https://huggingface.co/datasets/gaia-benchmark/GAIA)：官方数据已 gated，并禁止向可抓取仓库重新发布验证/测试集；需要 HF 数据授权、附件处理和有效联网能力。不能绕过 gate 或把第三方镜像当官方数据。
-- [Terminal-Bench 2.1](https://github.com/harbor-framework/terminal-bench-2-1)：适合后续端到端终端任务，需 Harbor 和隔离容器。本机 Docker CLI 存在，Docker daemon 尚未运行；没有在宿主机直接运行外部任务来替代其隔离环境。
-- [τ³-bench](https://github.com/sierra-research/tau2-bench)：需要领域工具和独立用户模拟模型，衡量多轮策略和最终环境状态。原 τ-bench 官方仓库已声明其题目过时，首版没有沿用过时任务。
-- [AgentBench FC](https://github.com/THUDM/AgentBench)：多容器、任务服务和额外数据部署成本较高，后续可用它的 OS/数据库任务补充系统操作评测。
+文件类评测的作答累计 token 预算为 300,000 输入加输出（Letta 评分另计），在完整模型响应边界检查；单次请求可能越界，usage 缺失时不能证明预算遵从。作答达轮数、时限或 token 边界计失败；评分请求达边界计未知并保留原因；模型或评分请求异常计未知。报告记录实际 profile、工具集、low/off 推理、轮数、时限与 token 预算。Direct 和 Agent 只有在同模型、同题目、同采样、同推理设置下才是可解释的本地策略对照；论文更高预算和脚本工具轨另列为外部参考。
 
-这些评测的待接入状态不能当作已运行或已经获得的能力分数。
+CLI 只读取本进程的 `M1TERA_BENCHMARK_API_KEY` 或 `OPENAI_API_KEY`。接口和模型可由 `M1TERA_BENCHMARK_BASE_URL`、`M1TERA_BENCHMARK_MODEL` 或 `--base-url`、`--model` 指定；协议为 `--api-format responses|chat-completions`。不要把密钥放入命令参数或聊天。远程接口无凭据时 `--probe` 为 blocked、分数 null，退出码 2；本地端点可只完成配置预检，不证明实际模型连通。预检不下载数据或调用模型。
+
+首次运行 Letta / LongHarness 需要联网下载固定公共数据。桌面缓存位于应用数据目录的 `benchmark-cache/`，不进入普通聊天上下文；缓存命中也验证 SHA。独立 CLI 使用临时隔离数据目录，结束后清理，因此新 CLI 进程可能再次下载。各题上下文与答案的隔离在运行时执行，不依赖 GUI 权限。
+
+## 指标与未知值
+
+报告记录服务商累计 input、output、cache read/write，实际模型请求数与工具调用数；本地 token 估算单独列出。任意执行缺 usage 时总 usage 保持未知，同时保留已有 usage 小计，不用零填补。
+
+计划题数、已处理数、已判分数与未知数分别列出，准确率及 Letta mean reward 的分母为已判分题目。取消、请求或评分异常为未知，不补成正确、错误或弃答；SimpleQA 官方 C 才算 NOT_ATTEMPTED。达确定的运行边界计失败。`mode: fixture` 不发布能力准确率或奖励成绩。
+
+v0.5 实际结果：BFCL 18/20、90%；SimpleQA 16/20、80%，均未知 0。保存后的 BFCL 预测经官方 Python scorer 逐题复核一致。报告和失败分析保持为历史结果，不随新增集合修改。[v0.5 评测](../docs/benchmarks/evaluation-v5.md)
+
+## 外部比较与后续集合
+
+[公开产品与 Harness 比较](../docs/benchmarks/comparison-2026-10-13.md) 分开列出 TB 4.0 当前官方登记、LongHarness 同模型论文实验，以及本项目结果。Deep Agents avg@3、Hermes mean reward、Letta v2 和本文 Filesystem cloud 有不同数据及分母，不直接并榜。
+
+- [Terminal-Bench 4.0](https://www.tbench.ai/run)：当前产品比较使用这一版本。需要 Harbor、独立 GPU/容器环境、任务 verifier 与 66×5 trials；本项目尚未完成这一集合。Docker daemon 可用不等于任务环境与评测完成，宿主命令不能替代隔离。
+- [τ³-bench](https://github.com/sierra-research/tau2-bench)：真实用户模拟器、领域工具、多轮策略与环境结果；不把固定对话或单轮问答改名为 τ³。
+- [EuniAI ContextBench](https://github.com/EuniAI/ContextBench)：代码任务的文件、符号、跨度检索 precision / recall / efficiency；与这里 Letta Filesystem cloud 不同。
+- [GAIA](https://huggingface.co/datasets/gaia-benchmark/GAIA)：需按官方数据授权处理 gated 数据、附件与联网，不把镜像当已授权原题。
+
+待接入或外部登记不是本项目已经获得的成绩。

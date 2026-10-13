@@ -1,0 +1,79 @@
+{
+  "mode": "public-source output type contract validation",
+  "modelRequests": 0,
+  "sourceRevision": "95c54a1646cc486f6702308a1e820cb361960fd4",
+  "adapterProtocol": "longharness-task-contract-v3",
+  "networkRequests": [
+    "https://huggingface.co/datasets/StringNLP/longharness/resolve/95c54a1646cc486f6702308a1e820cb361960fd4/README.md"
+  ],
+  "globalREADME_SHA256": "f5e0145805d15bcd6ecabdf1b0e957f6200ca8bf7fd73f5fe7da682e2192aefd",
+  "downloadedREADMEBytes": 6698,
+  "globalREADMEIncludedInPrompt": false,
+  "scorerUnchangedSHA256": "9611d0dce4e636faf5e323410f177f44e044f11a326f196778db4ae2cc8c4292",
+  "cases": [
+    {
+      "id": "constraint-solving-search_00000",
+      "originalPromptSha256": "b8baa014fcc1204ec3b419f9cd160512359dd58bc59d1d69facbaf6c26a12358",
+      "v2PromptSha256": "b8baa014fcc1204ec3b419f9cd160512359dd58bc59d1d69facbaf6c26a12358",
+      "promptSha256": "b8baa014fcc1204ec3b419f9cd160512359dd58bc59d1d69facbaf6c26a12358",
+      "equalToOriginalPromptBytes": true,
+      "subsetSha256": "96356c45a86b4af8cfa580be4a7d7573628b81a08b3fc5e47b5dceeeaceb3fd9"
+    },
+    {
+      "id": "constraint-solving-search_00001",
+      "originalPromptSha256": "09b14022ac5710ea36abbea7ebaa73dbfcb3a1d431964791261552319f025d39",
+      "v2PromptSha256": "09b14022ac5710ea36abbea7ebaa73dbfcb3a1d431964791261552319f025d39",
+      "promptSha256": "09b14022ac5710ea36abbea7ebaa73dbfcb3a1d431964791261552319f025d39",
+      "equalToOriginalPromptBytes": true,
+      "subsetSha256": "96356c45a86b4af8cfa580be4a7d7573628b81a08b3fc5e47b5dceeeaceb3fd9"
+    },
+    {
+      "id": "outlier-memo-detection_00000",
+      "originalPromptSha256": "635353c82e8a957110851c5ea9d6049f745174161254809970c0d414b40a13a4",
+      "v2PromptSha256": "635353c82e8a957110851c5ea9d6049f745174161254809970c0d414b40a13a4",
+      "promptSha256": "635353c82e8a957110851c5ea9d6049f745174161254809970c0d414b40a13a4",
+      "equalToOriginalPromptBytes": true,
+      "subsetSha256": "700ee3df9ac3d1cc5005fdc6169f1798fcdc451bae1f0725779d8a2962a86878"
+    },
+    {
+      "id": "outlier-memo-detection_00001",
+      "originalPromptSha256": "635353c82e8a957110851c5ea9d6049f745174161254809970c0d414b40a13a4",
+      "v2PromptSha256": "635353c82e8a957110851c5ea9d6049f745174161254809970c0d414b40a13a4",
+      "promptSha256": "635353c82e8a957110851c5ea9d6049f745174161254809970c0d414b40a13a4",
+      "equalToOriginalPromptBytes": true,
+      "subsetSha256": "700ee3df9ac3d1cc5005fdc6169f1798fcdc451bae1f0725779d8a2962a86878"
+    },
+    {
+      "id": "program-execution-tracing_00000",
+      "originalPromptSha256": "b4b97f55b84c95c16c874e89631b172e8d938f1cec42d1b645c199f517c2f35e",
+      "v2PromptSha256": "7cea9ed829bc2d6b27920d208c65c7ee9f6c6df8c964dff695008cd867e29d9a",
+      "promptSha256": "0854d04e108e45459eca66fedb34b5ed5cf5967dc643d600027d43b0d8df5758",
+      "equalToOriginalPromptBytes": false,
+      "subsetSha256": "3311bcac6f3c3cd7e6134a32054782617450843244fd7bca060521d0212c1f55"
+    },
+    {
+      "id": "program-execution-tracing_00001",
+      "originalPromptSha256": "ae27d8feec1ad3acd9b8d593e201fb10cabf34b9b23c190b71af9266aaef790a",
+      "v2PromptSha256": "9242802d94a5a7e63ab671a87be4c30cb9dea21f9ce8bc9fa104e268d165d4ec",
+      "promptSha256": "de535f2dbe0c771c1ed5aded3b4d72a15e8865d0fec6c1c2f99684009428eec1",
+      "equalToOriginalPromptBytes": false,
+      "subsetSha256": "3311bcac6f3c3cd7e6134a32054782617450843244fd7bca060521d0212c1f55"
+    },
+    {
+      "id": "equivalent-program-pair-search_00000",
+      "originalPromptSha256": "37e9a9fccc0718b50b39e1ef95873eb6cabab49962dbb3febaedc932c020515b",
+      "v2PromptSha256": "37e9a9fccc0718b50b39e1ef95873eb6cabab49962dbb3febaedc932c020515b",
+      "promptSha256": "37e9a9fccc0718b50b39e1ef95873eb6cabab49962dbb3febaedc932c020515b",
+      "equalToOriginalPromptBytes": true,
+      "subsetSha256": "bf388193d990209104f12ca57a2918914d7ac0ae609caa077eb4ce7fe270bba7"
+    },
+    {
+      "id": "equivalent-program-pair-search_00001",
+      "originalPromptSha256": "37e9a9fccc0718b50b39e1ef95873eb6cabab49962dbb3febaedc932c020515b",
+      "v2PromptSha256": "37e9a9fccc0718b50b39e1ef95873eb6cabab49962dbb3febaedc932c020515b",
+      "promptSha256": "37e9a9fccc0718b50b39e1ef95873eb6cabab49962dbb3febaedc932c020515b",
+      "equalToOriginalPromptBytes": true,
+      "subsetSha256": "bf388193d990209104f12ca57a2918914d7ac0ae609caa077eb4ce7fe270bba7"
+    }
+  ]
+}

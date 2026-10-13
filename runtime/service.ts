@@ -27,6 +27,8 @@ import type { HarnessMetrics } from './harness.js';
 import { admitSubmission, createCheckpoint, finishCheckpoint, hasUnknownEffects, isResumable, recordApproval, recordToolIntent, recordToolOutcome, recoverCheckpoint, submissionFingerprint, validateCheckpoint, validateSubmissionReceipts } from './checkpoints.js';
 import { runBenchmark } from './benchmarks.js';
 import type { BenchmarkExecution, BenchmarkTask } from './benchmarks.js';
+import { benchmarkSuite } from '../shared/benchmark-catalog.js';
+import type { BenchmarkProfile } from '../shared/benchmark-catalog.js';
 
 interface Run {
   id: string;
@@ -218,7 +220,7 @@ export class RuntimeService {
       case 'models.list': return this.listModels();
       case 'models.discover': return this.discoverModels(request.params);
       case 'benchmark.status': return this.benchmarkStatus();
-      case 'benchmark.start': return this.startBenchmark(request.params.suite, request.params.limit);
+      case 'benchmark.start': return this.startBenchmark(request.params.suite, request.params.limit, request.params.profile);
       case 'benchmark.report': {
         const report = this.benchmarkReports.get(stringParam(request.params.runId, 'runId'));
         if (!report) throw new RuntimeError('NOT_FOUND', '评测报告尚未生成');
@@ -707,13 +709,20 @@ export class RuntimeService {
   private benchmarkStatus(): BenchmarkStatus {
     return {
       ...(this.benchmarkRunning ? { running: { ...this.benchmarkRunning } } : {}),
-      reports: [...this.benchmarkReports].map(([runId, report]) => ({ runId, suite: report.suite, model: report.model, mode: report.mode, status: report.status,
-        completed: report.completed, total: report.total, accuracy: report.metrics.accuracy, graded: report.metrics.graded, unknown: report.metrics.unknown })).reverse(),
+      reports: [...this.benchmarkReports].map(([runId, report]) => {
+        const protocolInvalid = report.suite === 'longharness-tracing' && report.source.adapterProtocol !== 'longharness-task-contract-v3';
+        return { runId, suite: report.suite, model: report.model, mode: report.mode, status: report.status,
+          completed: report.completed, total: report.total, accuracy: protocolInvalid ? null : report.metrics.accuracy, graded: report.metrics.graded, unknown: report.metrics.unknown,
+          ...(report.metrics.meanReward !== undefined ? { meanReward: protocolInvalid ? null : report.metrics.meanReward } : {}),
+          ...(report.settings.profile ? { profile: report.settings.profile } : {}), ...(protocolInvalid ? { protocolInvalid: true } : {}) };
+      }).reverse(),
     };
   }
 
-  private async startBenchmark(suite: BenchmarkSuiteId, limit = 20) {
-    if (!['bfcl-v4', 'simpleqa'].includes(suite) || !Number.isSafeInteger(limit) || limit < 1 || limit > 20) throw new RuntimeError('INVALID_PARAMS', '评测支持 BFCL/SimpleQA，每套 1 到 20 题');
+  private async startBenchmark(suite: BenchmarkSuiteId, requestedLimit?: number, profile: BenchmarkProfile = 'agent') {
+    const descriptor = benchmarkSuite(suite);
+    const limit = requestedLimit ?? descriptor?.defaultLimit ?? 0;
+    if (!descriptor || !Number.isSafeInteger(limit) || limit < 1 || limit > descriptor.total || !['agent', 'direct'].includes(profile) || (profile === 'direct' && !suite.startsWith('longharness-'))) throw new RuntimeError('INVALID_PARAMS', '评测集、题数或运行方式无效');
     if (this.benchmarkController || this.baselineController) throw new RuntimeError('BENCHMARK_ACTIVE', '已有评测或基线正在运行');
     const settings = structuredClone(this.settings);
     this.requireEnabledModel(settings);
@@ -725,16 +734,18 @@ export class RuntimeService {
     const model = settings.connection === 'chatgpt' ? this.chatgpt.getModel(settings.model) : buildModel(settings);
     this.benchmarkController = controller;
     this.benchmarkConnection = settings.connection;
-    this.benchmarkRunning = { runId, suite, completed: 0, total: limit };
+    this.benchmarkRunning = { runId, suite, completed: 0, total: limit, profile };
     this.benchmarkPromise = new Promise<void>((resolve) => setImmediate(() => {
       void (async () => {
         let error: string | undefined;
         try {
-          const report = await runBenchmark({ suite, limit, model: settings.model, providerId: settings.providerId, mode: this.options.streamFn ? 'fixture' : 'live', signal: controller.signal,
+          const policy = validateHarnessPolicy(settings.harness);
+          const report = await runBenchmark({ suite, limit, profile, maxTurns: policy.maxModelTurns, runTimeoutSeconds: policy.runTimeoutSeconds, reasoningEffort: model.reasoning ? 'low' : 'off', harness: policy,
+            cacheDir: path.join(this.storage.directory, 'benchmark-cache'), model: settings.model, providerId: settings.providerId, mode: this.options.streamFn ? 'fixture' : 'live', signal: controller.signal,
             execute: (task) => this.executeBenchmarkTask(task, settings, model, apiKey, controller.signal),
             onProgress: (progress) => {
-              this.benchmarkRunning = { runId, suite, completed: progress.completed, total: progress.total };
-              this.emit({ type: 'benchmark.progress', runId, suite, completed: progress.completed, total: progress.total });
+              this.benchmarkRunning = { runId, suite, completed: progress.completed, total: progress.total, profile };
+              this.emit({ type: 'benchmark.progress', runId, suite, completed: progress.completed, total: progress.total, profile });
             },
           });
           const clean = this.sanitize(report);
@@ -760,13 +771,29 @@ export class RuntimeService {
     let estimatedInputTokens = 0;
     let usage: TokenUsage | null = null;
     let missingUsage = false;
+    let requestCount = 0;
+    let toolCallCount = 0;
+    let terminationReason: BenchmarkExecution['terminationReason'];
     const calls: BenchmarkExecution['calls'] = [];
-    const { agent } = createHarnessAgent({
+    const observedTools = new Set<string>();
+    const { agent, metrics } = createHarnessAgent({
       initialState: { model, tools: task.tools, messages: context.messages, thinkingLevel: model.reasoning ? 'low' : 'off' },
       streamFn: this.selectStream(settings), toolExecution: 'sequential',
       getApiKey: settings.connection === 'compatible' ? () => apiKey || 'unused' : undefined,
-      onPayload: (payload) => { estimatedInputTokens += estimatePayload(payload, estimateContext(systemPrompt, agent.state.messages, task.tools)).total; return payload; },
-    }, { sessionId: randomUUID(), systemPrompt, tools: task.tools, artifacts: this.artifacts, policy, redact: (text) => this.redact(text) });
+      onPayload: (payload) => {
+        if (terminationReason) throw new Error('本题已达到运行边界');
+        requestCount++;
+        if (payload && typeof payload === 'object' && 'tools' in payload && Array.isArray(payload.tools)) {
+          for (const tool of payload.tools) {
+            if (!tool || typeof tool !== 'object') continue;
+            const name = typeof tool.name === 'string' ? tool.name : typeof tool.function?.name === 'string' ? tool.function.name : undefined;
+            if (name) observedTools.add(name);
+          }
+        }
+        estimatedInputTokens += estimatePayload(payload, estimateContext(systemPrompt, agent.state.messages, task.tools)).total;
+        return payload;
+      },
+    }, { sessionId: randomUUID(), systemPrompt, tools: task.tools, artifacts: this.artifacts, policy, redact: (text) => this.redact(text), onIntent: async () => { toolCallCount++; } });
     agent.subscribe((event) => {
       if (event.type !== 'message_end' || event.message.role !== 'assistant') return;
       for (const block of event.message.content) if (block.type === 'toolCall') calls.push({ name: block.name, arguments: block.arguments });
@@ -774,17 +801,20 @@ export class RuntimeService {
       if (!next) missingUsage = true;
       else if (!usage) usage = { ...next };
       else usage = { source: 'provider', input: usage.input + next.input, output: usage.output + next.output, cacheRead: usage.cacheRead + next.cacheRead, cacheWrite: usage.cacheWrite + next.cacheWrite, totalInput: usage.totalInput + next.totalInput };
+      // This is a response-boundary budget. One request can cross it; unknown usage stays unknown.
+      if (task.tokenBudget && usage && usage.totalInput + usage.output >= task.tokenBudget) { terminationReason = 'token-budget'; agent.abort(); }
     });
     const abort = () => agent.abort();
     signal.addEventListener('abort', abort, { once: true });
-    const timeout = setTimeout(abort, Math.min(policy.runTimeoutSeconds, 120) * 1000);
+    const timeout = setTimeout(() => { terminationReason = 'timeout'; agent.abort(); }, Math.min(policy.runTimeoutSeconds, task.maxTurns > 1 ? 600 : 120) * 1000);
     try {
       if (signal.aborted) throw new Error('已取消');
       await agent.prompt(task.prompt);
-      if (signal.aborted || agent.state.errorMessage || agent.state.messages.findLast((message) => message.role === 'assistant')?.stopReason === 'aborted') throw new Error('模型请求未完成');
+      if (signal.aborted || (!terminationReason && (agent.state.errorMessage || agent.state.messages.findLast((message) => message.role === 'assistant')?.stopReason === 'aborted'))) throw new Error('模型请求未完成');
       const assistant = agent.state.messages.filter((message) => message.role === 'assistant');
-      const text = assistant.map((message) => contentText(message.content)).join('\n');
-      return { text: this.redact(text), calls: this.sanitize(calls), elapsedMs: Date.now() - started, estimatedInputTokens, usage: missingUsage ? null : usage };
+      if (task.tokenBudget && metrics.limitReason && !terminationReason) terminationReason = 'turn-limit';
+      const text = contentText(assistant.at(-1)?.content ?? []);
+      return { text: this.redact(text), calls: this.sanitize(calls), elapsedMs: Date.now() - started, estimatedInputTokens, usage: missingUsage ? null : usage, knownUsage: usage, observedTools: [...observedTools], requestCount, toolCallCount, ...(terminationReason ? { terminationReason } : {}) };
     } finally { clearTimeout(timeout); signal.removeEventListener('abort', abort); }
   }
 

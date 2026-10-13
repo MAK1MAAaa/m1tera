@@ -1,0 +1,89 @@
+{
+  "mode": "offline prompt contract validation",
+  "modelRequests": 0,
+  "sourceRevision": "95c54a1646cc486f6702308a1e820cb361960fd4",
+  "adapterProtocol": "longharness-task-contract-v2",
+  "officialTracingInstructionsSHA256": "5e132a34f8793ce627acf02d0193d782de6d2c25af17489ab25b4fbf7c98991f",
+  "cases": [
+    {
+      "id": "constraint-solving-search_00000",
+      "oldPromptSha256": "b8baa014fcc1204ec3b419f9cd160512359dd58bc59d1d69facbaf6c26a12358",
+      "promptSha256": "b8baa014fcc1204ec3b419f9cd160512359dd58bc59d1d69facbaf6c26a12358",
+      "promptBytes": 402,
+      "changed": false,
+      "subsetSha256": "96356c45a86b4af8cfa580be4a7d7573628b81a08b3fc5e47b5dceeeaceb3fd9",
+      "contextSha256": "236d0554e0489b3020a3d31c4b72b3a457974383b8d1dd513aebc8409ed6dc3e",
+      "equalToOriginalPromptBytes": true
+    },
+    {
+      "id": "constraint-solving-search_00001",
+      "oldPromptSha256": "09b14022ac5710ea36abbea7ebaa73dbfcb3a1d431964791261552319f025d39",
+      "promptSha256": "09b14022ac5710ea36abbea7ebaa73dbfcb3a1d431964791261552319f025d39",
+      "promptBytes": 477,
+      "changed": false,
+      "subsetSha256": "96356c45a86b4af8cfa580be4a7d7573628b81a08b3fc5e47b5dceeeaceb3fd9",
+      "contextSha256": "0c600f25bf63804ca832d27cae1ba1a864d83f22ba66d21b71cc7886e701dbc0",
+      "equalToOriginalPromptBytes": true
+    },
+    {
+      "id": "outlier-memo-detection_00000",
+      "oldPromptSha256": "635353c82e8a957110851c5ea9d6049f745174161254809970c0d414b40a13a4",
+      "promptSha256": "635353c82e8a957110851c5ea9d6049f745174161254809970c0d414b40a13a4",
+      "promptBytes": 665,
+      "changed": false,
+      "subsetSha256": "700ee3df9ac3d1cc5005fdc6169f1798fcdc451bae1f0725779d8a2962a86878",
+      "contextSha256": "07ae94ead941148280290f014d5cde70859448ec71fe1f93552088d38253f699",
+      "equalToOriginalPromptBytes": true
+    },
+    {
+      "id": "outlier-memo-detection_00001",
+      "oldPromptSha256": "635353c82e8a957110851c5ea9d6049f745174161254809970c0d414b40a13a4",
+      "promptSha256": "635353c82e8a957110851c5ea9d6049f745174161254809970c0d414b40a13a4",
+      "promptBytes": 665,
+      "changed": false,
+      "subsetSha256": "700ee3df9ac3d1cc5005fdc6169f1798fcdc451bae1f0725779d8a2962a86878",
+      "contextSha256": "4073cffa952a5b3b0ec4e2ff9e73980b1684067c51ae1a3e4108e8ae582d1a81",
+      "equalToOriginalPromptBytes": true
+    },
+    {
+      "id": "program-execution-tracing_00000",
+      "oldPromptSha256": "b4b97f55b84c95c16c874e89631b172e8d938f1cec42d1b645c199f517c2f35e",
+      "promptSha256": "7cea9ed829bc2d6b27920d208c65c7ee9f6c6df8c964dff695008cd867e29d9a",
+      "promptBytes": 7886,
+      "changed": true,
+      "subsetSha256": "3311bcac6f3c3cd7e6134a32054782617450843244fd7bca060521d0212c1f55",
+      "contextSha256": "0131a30fad824e21ddb07c01619c100db583290788b10d5dd7c228a3470dba1b",
+      "equalToOriginalPromptBytes": false
+    },
+    {
+      "id": "program-execution-tracing_00001",
+      "oldPromptSha256": "ae27d8feec1ad3acd9b8d593e201fb10cabf34b9b23c190b71af9266aaef790a",
+      "promptSha256": "9242802d94a5a7e63ab671a87be4c30cb9dea21f9ce8bc9fa104e268d165d4ec",
+      "promptBytes": 8373,
+      "changed": true,
+      "subsetSha256": "3311bcac6f3c3cd7e6134a32054782617450843244fd7bca060521d0212c1f55",
+      "contextSha256": "49589e2e8b3a2b3885dfe6d1c56a4c8f644f67dfdbeece5903498b653a4a834b",
+      "equalToOriginalPromptBytes": false
+    },
+    {
+      "id": "equivalent-program-pair-search_00000",
+      "oldPromptSha256": "37e9a9fccc0718b50b39e1ef95873eb6cabab49962dbb3febaedc932c020515b",
+      "promptSha256": "37e9a9fccc0718b50b39e1ef95873eb6cabab49962dbb3febaedc932c020515b",
+      "promptBytes": 505,
+      "changed": false,
+      "subsetSha256": "bf388193d990209104f12ca57a2918914d7ac0ae609caa077eb4ce7fe270bba7",
+      "contextSha256": "8aaaa335dc9929279d791d9dd060bdfa703cc3b8db353b822140ecbff6ca526b",
+      "equalToOriginalPromptBytes": true
+    },
+    {
+      "id": "equivalent-program-pair-search_00001",
+      "oldPromptSha256": "37e9a9fccc0718b50b39e1ef95873eb6cabab49962dbb3febaedc932c020515b",
+      "promptSha256": "37e9a9fccc0718b50b39e1ef95873eb6cabab49962dbb3febaedc932c020515b",
+      "promptBytes": 505,
+      "changed": false,
+      "subsetSha256": "bf388193d990209104f12ca57a2918914d7ac0ae609caa077eb4ce7fe270bba7",
+      "contextSha256": "2cbefd35b38ba01b25fd18dd703e4861b7f30aaa8e47014f6b0b740d379b3f70",
+      "equalToOriginalPromptBytes": true
+    }
+  ]
+}

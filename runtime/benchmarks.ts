@@ -1,21 +1,23 @@
 import type { AgentTool } from '@earendil-works/pi-agent-core';
-import type { TokenUsage } from '../shared/protocol.js';
+import type { HarnessPolicy, TokenUsage } from '../shared/protocol.js';
+import type { BenchmarkCall, BenchmarkCase, BenchmarkReport } from '../shared/benchmark-types.js';
+export type { BenchmarkCall, BenchmarkCase, BenchmarkReport } from '../shared/benchmark-types.js';
 import { BENCHMARK_SOURCE, BFCL_CASES, SIMPLEQA_CASES, SIMPLEQA_GRADER_TEMPLATE } from '../benchmarks/data.js';
 import type { BfclExample, BfclFunction } from '../benchmarks/data.js';
+import { BENCHMARK_SUITES, benchmarkSuite } from '../shared/benchmark-catalog.js';
+import type { BenchmarkProfile, BenchmarkSuiteId } from '../shared/benchmark-catalog.js';
+import { runFilesystemBenchmark } from './filesystem-benchmarks.js';
 
-export type BenchmarkSuiteId = 'bfcl-v4' | 'simpleqa';
-export const BENCHMARK_SUITES = [
-  { id: 'bfcl-v4' as const, name: 'BFCL v4 工具调用', total: 20, description: '10 道 simple_python + 10 道 multiple 原题；本地 AST 规则移植，非官方排行榜。' },
-  { id: 'simpleqa' as const, name: 'SimpleQA 事实问答', total: 20, description: '官方 seed=0 的 20 道原题；无浏览，独立调用官方 A/B/C 评分提示词。' },
-] as const;
+export { BENCHMARK_SUITES };
+export type { BenchmarkSuiteId, BenchmarkProfile };
 
-export interface BenchmarkCall { name: string; arguments: Record<string, unknown> }
 export interface BenchmarkTask {
   prompt: string;
   tools: AgentTool[];
   maxTurns: number;
   systemPrompt?: string;
   signal?: AbortSignal;
+  tokenBudget?: number;
 }
 export interface BenchmarkExecution {
   text: string;
@@ -23,52 +25,13 @@ export interface BenchmarkExecution {
   elapsedMs: number;
   estimatedInputTokens: number;
   usage: TokenUsage | null;
+  knownUsage?: TokenUsage | null;
+  observedTools?: string[];
+  requestCount?: number;
+  toolCallCount?: number;
+  terminationReason?: 'turn-limit' | 'timeout' | 'token-budget';
 }
 export interface BenchmarkProgress { completed: number; total: number; phase: 'answering' | 'grading' | 'completed'; taskId?: string }
-export interface BenchmarkCase {
-  id: string;
-  status: 'passed' | 'failed' | 'unknown';
-  grade?: 'CORRECT' | 'INCORRECT' | 'NOT_ATTEMPTED';
-  answer?: string;
-  calls?: BenchmarkCall[];
-  error?: string;
-  elapsedMs: number | null;
-  estimatedInputTokens: number | null;
-  usage: TokenUsage | null;
-  graderUsage?: TokenUsage | null;
-  graderEstimatedInputTokens?: number | null;
-}
-export interface BenchmarkReport {
-  mode: 'live' | 'fixture';
-  status: 'completed' | 'cancelled';
-  suite: BenchmarkSuiteId;
-  name: string;
-  model: string;
-  providerId?: string;
-  measuredAt: string;
-  source: { revision: string; upstream: string; license: string; sourceFileHashes: Record<string, string>; selectedIds: string[]; sampling: string; subsetSha256: string };
-  grader: string;
-  settings: { browsing: false; maxAnswerTurns: 1; freshContextPerTask: true; sameModelForGrader: boolean };
-  total: number;
-  completed: number;
-  cases: BenchmarkCase[];
-  metrics: {
-    correct: number;
-    incorrect: number;
-    notAttempted: number;
-    unknown: number;
-    graded: number;
-    accuracy: number | null;
-    accuracyGivenAttempted: number | null;
-    denominator: 'graded cases';
-    knownInputTokens: number;
-    totalInputTokens: number | null;
-    inputUsageUnknown: boolean;
-    estimatedInputTokens: number | null;
-    elapsedMs: number;
-  };
-}
-
 /** BFCL's OpenAI adapter converts Python-flavoured schema types and dot-separated names. */
 export function convertBfclSchema(value: Record<string, unknown>): Record<string, unknown> {
   const copy = structuredClone(value);
@@ -197,11 +160,20 @@ export async function runBenchmark(options: {
   mode?: 'live' | 'fixture';
   model?: string;
   providerId?: string;
+  cacheDir?: string;
+  profile?: BenchmarkProfile;
+  maxTurns?: number;
+  runTimeoutSeconds?: number;
+  reasoningEffort?: string;
+  harness?: HarnessPolicy;
 }): Promise<BenchmarkReport> {
-  const descriptor = BENCHMARK_SUITES.find((suite) => suite.id === options.suite);
+  const descriptor = benchmarkSuite(options.suite);
   if (!descriptor) throw new Error('未知评测集。');
-  const limit = options.limit ?? 20;
-  if (!Number.isInteger(limit) || limit < 1 || limit > 20) throw new Error('评测题数必须为 1 至 20 的整数。');
+  const limit = options.limit ?? descriptor.defaultLimit;
+  if (!Number.isInteger(limit) || limit < 1 || limit > descriptor.total) throw new Error(`评测题数必须为 1 至 ${descriptor.total} 的整数。`);
+  if (options.profile !== undefined && !['agent', 'direct'].includes(options.profile)) throw new Error('未知评测方式。');
+  if (options.profile === 'direct' && !options.suite.startsWith('longharness-')) throw new Error('完整上下文单次请求仅支持 LongHarness。');
+  if (options.suite !== 'bfcl-v4' && options.suite !== 'simpleqa') return runFilesystemBenchmark({ ...options, limit });
   // Keep equal category coverage in small BFCL runs instead of selecting only the simple prefix.
   const bfclCases = [...BFCL_CASES.slice(0, Math.ceil(limit / 2)), ...BFCL_CASES.slice(10, 10 + Math.floor(limit / 2))];
   const examples = options.suite === 'bfcl-v4' ? bfclCases : SIMPLEQA_CASES.slice(0, limit);
@@ -213,7 +185,7 @@ export async function runBenchmark(options: {
     grader: options.suite === 'bfcl-v4'
       ? '固定 20 题范围的 TypeScript AST 规则移植；保留官方允许值、可选参数和字符串归一。JavaScript JSON 数值不保留 Python int/float 字面量差别；非官方 BFCL leaderboard。'
       : '原版 OpenAI GRADER_TEMPLATE，答案生成后另一次独立请求；A/B/C。使用同一模型评分，有自评偏差；非官方完整 SimpleQA score。评分响应不合法记未知，绝不默认弃答。',
-    settings: { browsing: false, maxAnswerTurns: 1, freshContextPerTask: true, sameModelForGrader: options.suite === 'simpleqa' },
+    settings: { browsing: false, maxAnswerTurns: 1, freshContextPerTask: true, sameModelForGrader: options.suite === 'simpleqa', profile: 'agent', reasoningEffort: options.reasoningEffort ?? '未记录', runTimeoutSeconds: Math.min(options.runTimeoutSeconds ?? 300, 120), ...(options.harness ? { harness: options.harness } : {}) },
     total: examples.length, completed: 0, cases: [],
     metrics: { correct: 0, incorrect: 0, notAttempted: 0, unknown: examples.length, graded: 0, accuracy: null, accuracyGivenAttempted: null,
       denominator: 'graded cases', knownInputTokens: 0, totalInputTokens: null, inputUsageUnknown: true, estimatedInputTokens: null, elapsedMs: 0 },
@@ -230,8 +202,14 @@ export async function runBenchmark(options: {
       item.elapsedMs = estimate(answer.elapsedMs);
       item.estimatedInputTokens = estimate(answer.estimatedInputTokens);
       item.usage = verifiedUsage(answer.usage);
+      item.knownUsage = verifiedUsage(answer.knownUsage ?? answer.usage);
+      item.observedTools = answer.observedTools;
+      item.requestCount = answer.requestCount ?? 1;
+      item.toolCallCount = answer.toolCallCount ?? answer.calls.length;
+      item.terminationReason = answer.terminationReason;
       if (options.signal?.aborted) throw new Error('Cancelled');
-      if (options.suite === 'bfcl-v4') {
+      if (answer.terminationReason) { item.status = 'failed'; item.error = `本题达到运行边界：${answer.terminationReason}；未作为成功作答评分。`; }
+      else if (options.suite === 'bfcl-v4') {
         const score = scoreBfcl(example as BfclExample, answer.calls);
         item.status = score.passed ? 'passed' : 'failed';
         if (score.errorType) item.error = `工具调用不符合原题 AST 规则：${score.errorType}。`;
@@ -240,11 +218,14 @@ export async function runBenchmark(options: {
         options.onProgress?.({ completed: report.completed, total: report.total, phase: 'grading', taskId: example.id });
         const graded = await options.execute({ prompt: gradingPrompt(question.prompt, question.answer, answer.text), tools: [], maxTurns: 1, systemPrompt: '', signal: options.signal });
         item.graderUsage = verifiedUsage(graded.usage);
+        item.graderKnownUsage = verifiedUsage(graded.knownUsage ?? graded.usage);
         item.graderEstimatedInputTokens = estimate(graded.estimatedInputTokens);
+        item.requestCount += graded.requestCount ?? 1;
         if (item.elapsedMs !== null && estimate(graded.elapsedMs) !== null) item.elapsedMs += graded.elapsedMs;
         if (options.signal?.aborted) throw new Error('Cancelled');
         const letter = graded.text.trim();
-        if (graded.calls.length > 0 || !/^[ABC]$/.test(letter)) item.error = '评分响应不符合 A/B/C 格式；成绩未知。';
+        if (graded.terminationReason) item.error = `评分达到运行边界：${graded.terminationReason}；成绩未知。`;
+        else if (graded.calls.length > 0 || !/^[ABC]$/.test(letter)) item.error = '评分响应不符合 A/B/C 格式；成绩未知。';
         else {
           item.grade = ({ A: 'CORRECT', B: 'INCORRECT', C: 'NOT_ATTEMPTED' } as const)[letter as 'A' | 'B' | 'C'];
           item.status = letter === 'A' ? 'passed' : 'failed';
@@ -252,6 +233,8 @@ export async function runBenchmark(options: {
       }
     } catch {
       item.status = 'unknown';
+      delete item.requestCount;
+      delete item.toolCallCount;
       item.error = options.signal?.aborted ? '评测已取消；此题成绩未知。' : '模型或评分请求失败；此题成绩未知。';
     }
     report.completed++;
@@ -262,16 +245,21 @@ export async function runBenchmark(options: {
   const notAttempted = report.cases.filter((item) => item.grade === 'NOT_ATTEMPTED').length;
   const incorrect = report.cases.filter((item) => item.status === 'failed' && item.grade !== 'NOT_ATTEMPTED').length;
   const graded = correct + incorrect + notAttempted;
-  const executions = report.cases.flatMap((item) => options.suite === 'simpleqa' ? [item.usage, item.graderUsage ?? null] : [item.usage]);
+  const executions = report.cases.flatMap((item) => options.suite === 'simpleqa' && !item.terminationReason ? [item.usage, item.graderUsage ?? null] : [item.usage]);
+  const knownExecutions = report.cases.flatMap((item) => options.suite === 'simpleqa' && !item.terminationReason ? [item.knownUsage ?? item.usage, item.graderKnownUsage ?? item.graderUsage ?? null] : [item.knownUsage ?? item.usage]);
   const allUsage = report.completed === report.total && executions.every((usage) => usage !== null);
-  const knownInputTokens = executions.reduce((sum, usage) => sum + (usage?.totalInput ?? 0), 0);
-  const estimates = report.cases.flatMap((item) => options.suite === 'simpleqa' ? [item.estimatedInputTokens, item.graderEstimatedInputTokens ?? null] : [item.estimatedInputTokens]);
+  const knownInputTokens = knownExecutions.reduce((sum, usage) => sum + (usage?.totalInput ?? 0), 0);
+  const estimates = report.cases.flatMap((item) => options.suite === 'simpleqa' && !item.terminationReason ? [item.estimatedInputTokens, item.graderEstimatedInputTokens ?? null] : [item.estimatedInputTokens]);
+  report.settings.tools = [...new Set(report.cases.flatMap((item) => item.observedTools ?? []))];
   report.metrics = {
     correct, incorrect, notAttempted, unknown: report.total - graded, graded,
     accuracy: report.mode === 'live' && graded > 0 ? correct / graded : null,
     accuracyGivenAttempted: report.mode === 'live' && correct + incorrect > 0 ? correct / (correct + incorrect) : null,
     denominator: 'graded cases', knownInputTokens, totalInputTokens: allUsage ? knownInputTokens : null, inputUsageUnknown: !allUsage,
     estimatedInputTokens: report.completed === report.total && estimates.every((value) => value !== null) ? estimates.reduce<number>((sum, value) => sum + (value ?? 0), 0) : null,
+    totalOutputTokens: allUsage ? executions.reduce((sum, usage) => sum + (usage?.output ?? 0), 0) : null,
+    ...(report.cases.every((item) => item.requestCount !== undefined) ? { requestCount: report.cases.reduce((sum, item) => sum + (item.requestCount ?? 0), 0) } : {}),
+    ...(report.cases.every((item) => item.toolCallCount !== undefined) ? { toolCallCount: report.cases.reduce((sum, item) => sum + (item.toolCallCount ?? 0), 0) } : {}),
     elapsedMs: Math.round(performance.now() - started),
   };
   return report;

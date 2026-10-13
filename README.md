@@ -35,7 +35,7 @@ v0.4 的官方模型发现使用当前账号的 OAuth Bearer 凭据请求 `GET h
 
 密钥按服务商保存在内存：输入框留空保留该接口现有密钥，勾选“清除本接口的现有密钥”才显式清除。修改 base URL 或删除接口会清除对应密钥，不自动将原密钥带到新地址；同一 URL 下切换 API 格式保留密钥。新接口保存前的发现候选通过仅在内存中的 URL 和密钥 SHA256 指纹匹配；匹配后归入该接口的本次运行目录，避免保存配置后丢失已发现结果。目录候选、指纹和原密钥均不写入磁盘，也不跨重启保留。
 
-v0.5 已通过用户本轮官方 OAuth 授权验收：真实账号目录返回 7 个可见模型，`gpt-6.1-sol` 的可信上下文上限为 500,000 tokens，并完成下述真实评测；其他发现项保持未启用。验证不读取既有凭据。当前检查范围见 [0.5.0 验证记录](docs/validation-v5.md)，[0.4.0 记录](docs/validation-v4.md) 保留为历史结果。
+v0.5 已通过独立官方 OAuth 授权验收：真实账号目录返回 7 个可见模型，`gpt-6.1-sol` 的可信上下文上限为 500,000 tokens，并完成下述真实评测；其他发现项保持未启用。验证不读取既有凭据。当前检查范围见 [0.6.0 验证记录](docs/validation-v6.md)，[0.5.0](docs/validation-v5.md) 与 [0.4.0](docs/validation-v4.md) 保留为历史结果。
 
 ## Harness 运行与上下文
 
@@ -49,27 +49,75 @@ v0.5 借鉴 Deep Agents 的可取回结果外置和 Pi durable 的检查点边�
 
 确认接收输入、公布完整消息、执行工具及公布结果前保存相应检查点，审批等待与批准/拒绝也先保存再生效；transcript 与运行状态写入同一原子会话快照。流式 `text.delta` 用于即时显示，不逐条持久化，崩溃后未提交的文本增量可能丢失。同一会话最近 64 个请求标识可防重复接收；标识相同而任务输入或非密钥配置改变时会报冲突。中断后旧审批失效，结果未知的工具不自动重放；“继续任务”重新发起模型请求，写入与命令恢复为逐次审批。保存失败会停止后续操作，已经发生而未保存的外部效果仍为未知，不声称任意命令 exactly-once。凭据依然只在内存。
 
-## 常见 Benchmark
+## Benchmark 与产品比较
 
-顶栏“评测”使用当前已启用模型的连接，每题独立空历史；作答和评分使用同一个 harness factory。ChatGPT 可在设置中授权后直接运行，无需将 token 或 key 发到聊天中。
+顶栏“评测”复用当前已启用模型的连接与聊天 Harness。每题使用独立空历史，不加载用户项目指令、技能或记忆；标准答案只供本地评分或另一次 grader 请求。v0.6 在 BFCL / SimpleQA 之外新增 **Letta Context-Bench 与 LongHarness 四套长上下文任务**，同时记录实际输入、输出、缓存、请求数、工具调用数与运行边界。
 
-- **BFCL v4**：10 道 `simple_python` + 10 道 `multiple` 官方原题，测试函数仅记录调用；评分为标明的本地 AST 规则移植，60 份规则对照结果已与未改动的官方 Python 评分器相符，不作为官方 BFCL 分数。
-- **SimpleQA**：官方 seed=0 抽样的 20 道原题，无浏览；标准答案只供另次独立 grader 请求，作答请求不获得标准答案。评分使用官方 A/B/C 提示词，同一模型评分存在偏差。
+### 本项目实测与已接入集合
 
-两套均为固定小样本，不对标完整官方榜单，也不代替多轮工具执行和持久恢复评测。界面同时显示已判分 / 总题数、未知和准确率分母；请求或评分失败为未知，fixture 不生成模型准确率。数据版本、SHA256、抽样及许可见 [评测资料](benchmarks/README.md)。
+| 评测 | 衡量能力 | 默认题数 / 数据总数 | 评分与许可 | 本项目状态 |
+| --- | --- | --- | --- | --- |
+| BFCL v4 | 工具选择与参数准确性 | 20 / 固定 20 题子集 | 本地 AST 移植、官方 Python 复核；Apache-2.0 | **v0.5：18/20，90%** |
+| SimpleQA | 无浏览事实问答 | 20 / 固定 20 题子集 | 官方 A/B/C、同模型另次评分；MIT | **v0.5：16/20，80%** |
+| Letta Context-Bench · Filesystem cloud | 十文件检索与多跳关联 | 3 / 100 | 官方 0 / 0.5 / 1 rubric，同模型评分；Apache-2.0 | **v0.6：3/3；mean reward 100%、全正确 100%** |
+| LongHarness · 条件搜索 | 分散资料中的完整条件匹配集合 | 2 / 50 | 确定性 exact；数据许可未声明，外置下载 | Agent：0/1 已判分、未知 1；Direct：2/2、100%（均为两题小样本） |
+| LongHarness · 冲突备忘录 | 跨备忘录矛盾识别 | 2 / 50 | 完整 ID 集合 exact；同上 | Agent 0/2（预算失败）；Direct 0/2；未知均为 0 |
+| LongHarness · 程序追踪 | 八步依赖计算与证据检索 | 2 / 50 | 最终结果与证据同时 exact，另报 answer-only；同上 | Agent：0/1 已判分、未知 1；Direct：2/2、100%（均为两题小样本） |
+| LongHarness · 等价程序 | 200 段程序的完整等价配对 | 2 / 50 | 无序配对集合 exact；同上 | Agent、Direct 均 0/1 已判分、未知 1；均为两题小样本 |
+
+v0.5 的两套成绩来自官方 ChatGPT 连接的 `gpt-6.1-sol`，未知均为 0。SimpleQA 另有 3 题错误、1 题未作答，并有同模型评分偏差；BFCL 实际预测与官方 Python scorer 逐题一致。共 60 次真实请求、32,080 输入 tokens，包含缓存和评分请求。[原始结果与失败分析](docs/benchmarks/evaluation-v5.md)
+
+新增集合采用固定前缀抽样，每题一次尝试。**Agent 检索轨**初始提供本题虚拟文件的 `list_directory`、分页 `read_file` 和字面量 `search_file`，结果外置后另提供只读取本题 artifact 的 `read_artifact`，实际工具集写入报告；不执行上下文程序，也不访问宿主文件或网络。默认最多 24 次模型请求、300 秒；作答累计 300,000 输入加输出 tokens 在完整响应后检查，Letta 评分请求另计，单次请求可能越界，usage 缺失时无法证明预算遵从。**LongHarness Direct 轨**一次读取完整原文、0 工具、1 次模型请求，用于同模型同题目的上下文策略对照；单请求时限最多 120 秒。每份报告保留实际配置；用户可调整策略，Agent 上限为 24 轮 / 600 秒，Direct 上限 1 轮 / 120 秒。作答达到运行边界计失败，评分边界或请求异常计未知。
+
+Letta 报告同时显示 mean reward 与 reward=1 的完整正确率，二者不能混用；0.5 仅对应原版 rubric 的明确拒绝。这里的 Filesystem cloud 与 Letta **Filesystem v2**、EuniAI 的代码检索 **ContextBench** 是不同数据集。首次运行从固定官方 revision 下载完整题目语料并校验 SHA，下载失败不会用模拟数据生成成绩。LongHarness 缺少明确再分发许可，题目与官方 scorer 不放入仓库或安装包。[运行、数据与评分协议](benchmarks/README.md)
+
+新增集合的原始报告、预算失败、请求异常及追踪任务协议修复均保留在 [v0.6 实测报告](docs/benchmarks/evaluation-v6.md)。当前是小样本观察；分段读取在已完成任务中增加了重复输入，不能由短首轮提示词推断总成本更低。
 
 ```sh
 npm run benchmark -- --probe
-npm run benchmark -- --suite all --limit 20
-npm run benchmark:harness
+npm run benchmark -- --suite letta-context --limit 3
+npm run benchmark -- --suite longharness-tracing --limit 2 --profile agent
+npm run benchmark -- --suite longharness-tracing --limit 2 --profile direct
+npm run benchmark -- --suite all
 python3 benchmarks/check-bfcl-oracle.py
 ```
 
-CLI 仅读取本次进程的 `M1TERA_BENCHMARK_API_KEY` 或 `OPENAI_API_KEY`，不读取 Codex 或桌面私有凭据；订阅账号从桌面运行。没有凭据时预检输出 blocked、分数 null。
+CLI 省略 `--limit` 时采用表中各集合默认值；`all` 运行七套，共 51 题，包含额外评分与多轮请求。`--profile direct` 仅改变 LongHarness，其他集合保留原轨。CLI 只读取本进程的 `M1TERA_BENCHMARK_API_KEY` / `OPENAI_API_KEY`，远程接口没有凭据时预检为 blocked、成绩为 null；本地端点只完成配置预检，不证明真实模型连通；ChatGPT 订阅账号从桌面授权后运行，不迁移凭据给其他产品。
 
-v0.5 使用官方 ChatGPT 连接的 `gpt-6.1-sol` 完成两套 20 题固定子集：**BFCL 18/20（90%），SimpleQA 16/20（80%）**，未知均为 0；BFCL 保存的实际预测与官方 Python scorer 逐题判定一致。SimpleQA 另有 3 题错误、1 题未作答，使用同模型 grader。总计 60 次真实请求、32,080 输入 tokens（含缓存及评分请求）。结果、失败分析与限制见 [评测报告](docs/benchmarks/evaluation-v5.md)。
+### 公开产品成绩：Terminal-Bench 4.0
 
-本地 harness 管线报告见 [报告](docs/benchmarks/harness-local.md)。同一份约 35 KiB 合成日志，原文累计输入估算为 11873 tokens、结果外置为 2369 tokens，减少 80.05%，已计入额外读取请求与 schema。这是一个确定性单样本的上下文与可靠性验证；脚本服务端选择读取位置，不能代表真实模型的检索或理解能力。
+以下是 **2026-10-13 抓取的官方榜单登记快照**，不是本项目重新运行其他产品的结果。每个配置为 66 题 × 5 次，共 330 trials；指标是 trial resolution rate，± 为官方报告的 95% 置信区间半宽。[官方榜单](https://www.tbench.ai/leaderboard)
+
+| 产品 / Harness | 模型 | 推理档位 | TB 4.0 成绩 | 登记日期（UTC） |
+| --- | --- | --- | ---: | --- |
+| Claude Code | Opus 5.5 | max | 64.85% ± 3.11 | 2026-10-06 |
+| Claude Code | Sonnet 5.5 | max | 61.82% ± 2.94 | 2026-10-06 |
+| Codex | GPT-6 Astra | max | 58.18% ± 2.79 | 2026-09-03 |
+| Codex | GPT-6.1 Sol | max | 58.18% ± 3.11 | 2026-10-06 |
+| Grok Build | Grok 4.7 | xhigh | 37.58% ± 3.54 | 2026-09-21 |
+| mini-SWE-agent | Gemini 3.8 Flash | high | 19.09% ± 3.36 | 2026-09-03 |
+| Muse Code | Muse Spark 1.3 | xhigh | 14.55% ± 2.94 | 2026-10-06 |
+| m1tera | GPT-6.1 Sol | — | **未评测 TB 4.0** | — |
+
+模型、推理档位和产品配置不同，差值不能全部归因于 Harness。榜单未公开逐行产品版本、实际运行日期和 sandbox；登记日期也不是模型发布日期。TB 4.0 需要完整隔离环境与 GPU 任务，不能将本项目 BFCL / SimpleQA 小样本分数放进这张表排名，也不合并 TB 2.x / 3.x / 4.0 成绩。[快照、原始记录与条件](docs/benchmarks/product-comparison-sources-2026-10-13.md)
+
+### 同模型 Harness 参考：LongHarness 发布实验
+
+LongHarness 论文使用 **GPT-5.6-sol、high 推理、四套各 50 题、每实例 3M 累计 tokens**，对比不同上下文处理方式。以下成本是论文按当时 API 价格估算的每实例美元成本。[论文 Table 2](https://arxiv.org/html/2609.38137)
+
+| Harness | 四套 exact 宏平均 | 论文估算 USD / 实例 |
+| --- | ---: | ---: |
+| Direct | 60.0% | $0.822 |
+| RLM | 53.5% | $4.30 |
+| OpenCode | 40.5% | $2.90 |
+| mini-swe-agent | 68.0% | $0.816 |
+| ReAct | 43.0% | $1.93 |
+
+这些是发布方实验，工具能力也各不相同。本项目使用 `gpt-6.1-sol`、low 推理、小样本、只读检索和更低预算，故单列本项目结果，不插入同条件排名；论文美元成本不是 ChatGPT 订阅花费。[逐任务比较与适用边界](docs/benchmarks/comparison-2026-10-13.md)
+
+Deep Agents 新版发布同时评估自主任务、多轮对话和上下文检索，促成本次新增 Letta；但其 avg@3、pass@3，以及 Hermes mean reward 都有独立分母和部分奖励规则，不能改写成单次完整成功率。[发布评测调研](docs/benchmarks/harness-launches-2026-10-13.md)
+
+本地固定日志样本的上下文估算减少 80.05%，属于独立的管线验证，不能据此宣称优于任何外部产品。[本地报告](docs/benchmarks/harness-local.md)
 
 ## 输入、文件与 Skills
 
@@ -131,7 +179,7 @@ Node sidecar 启用 Node 24 的环境代理支持。macOS 上若没有显式代�
 
 当前未设置硬 token 上限或自动摘要。历史过长时由模型接口返回错误，用户可以新建会话或调整上下文策略。
 
-已完成 ChatGPT `gpt-6.1-sol` 实测：0/4/20 个工具定义的成功请求输入为 **49 / 237 / 957 tokens**。数值来自 0.1.0 的两轮测量，失败请求保留为未知，见 [实测报告](docs/context-baseline-live.md)。v0.5 已通过 299 项自动化检查（255 runtime、33 E2E、11 Rust）和 11 项包内 smoke，并完成官方账号目录与固定子集评测；见 [0.5.0 验证记录](docs/validation-v5.md)。[0.4.0](docs/validation-v4.md)、[0.3.0](docs/validation-v3.md)、[0.2.0](docs/validation-v2.md) 和 [首次真实模型验证](docs/validation.md) 保留为历史结果，不替代当前版本验收。独立视觉、其他平台与独立无 Node 机器安装仍未验收。
+已完成 ChatGPT `gpt-6.1-sol` 实测：0/4/20 个工具定义的成功请求输入为 **49 / 237 / 957 tokens**。数值来自 0.1.0 的两轮测量，失败请求保留为未知，见 [实测报告](docs/context-baseline-live.md)。v0.5 已通过 299 项自动化检查（255 runtime、33 E2E、11 Rust）和 11 项包内 smoke，并完成官方账号目录与固定子集评测；见 [0.5.0 验证记录](docs/validation-v5.md)。[0.4.0](docs/validation-v4.md)、[0.3.0](docs/validation-v3.md)、[0.2.0](docs/validation-v2.md) 和 [首次真实模型验证](docs/validation.md) 保留为历史结果，不替代当前版本验收。[v0.5 独立视觉复核](docs/visual-verification-v5.md)已完成：功能与布局通过，生产字体尚未接入规范要求的 DM Sans，保留这一设计偏差。v0.6 已通过 453 项自动化检查和 8 组包内 smoke，见 [0.6.0 验证记录](docs/validation-v6.md)；其他平台、独立无 Node 机器安装及签名公证仍未验收。
 
 ## 源码与边界
 

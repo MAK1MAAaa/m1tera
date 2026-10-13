@@ -1,0 +1,217 @@
+{
+  "mode": "live",
+  "status": "completed",
+  "suite": "longharness-tracing",
+  "name": "LongHarness 程序追踪",
+  "model": "gpt-6.1-sol",
+  "providerId": "chatgpt",
+  "measuredAt": "2026-10-13T05:49:27.908Z",
+  "source": {
+    "revision": "95c54a1646cc486f6702308a1e820cb361960fd4",
+    "upstream": "https://huggingface.co/datasets/StringNLP/longharness/tree/95c54a1646cc486f6702308a1e820cb361960fd4",
+    "license": "未声明；仅下载用于评测，不分发数据",
+    "sourceFileHashes": {
+      "manifest.jsonl": "28b7f2418982db028427f35fd79a119acf83b4a7c254b2ee69c9162e0c01df9a",
+      "DATA_CHECKSUMS.sha256": "e0566948242e72918c760aa42e39c1bbbc38e59f5dbe2f416665da4e77b6f822",
+      "tasks/program-execution-tracing/README.md": "5e132a34f8793ce627acf02d0193d782de6d2c25af17489ab25b4fbf7c98991f",
+      "tasks/program-execution-tracing/contexts/sample-00000.md": "0131a30fad824e21ddb07c01619c100db583290788b10d5dd7c228a3470dba1b",
+      "tasks/program-execution-tracing/answers/sample-00000.json": "46078a0c8084273bce39b1d2c068af32d6175beb8af702f90a59b3abe314027e",
+      "tasks/program-execution-tracing/contexts/sample-00001.md": "49589e2e8b3a2b3885dfe6d1c56a4c8f644f67dfdbeece5903498b653a4a834b",
+      "tasks/program-execution-tracing/answers/sample-00001.json": "cb37bd875be5b40f3c63cba0226426e1f259a2e254cd6b4b0dd6d3313404f71b"
+    },
+    "selectedIds": [
+      "program-execution-tracing_00000",
+      "program-execution-tracing_00001"
+    ],
+    "adapterProtocol": "longharness-task-contract-v2",
+    "promptSha256": {
+      "program-execution-tracing_00000": "7cea9ed829bc2d6b27920d208c65c7ee9f6c6df8c964dff695008cd867e29d9a",
+      "program-execution-tracing_00001": "9242802d94a5a7e63ab671a87be4c30cb9dea21f9ce8bc9fa104e268d165d4ec"
+    },
+    "sampling": "Official sample indices 0..1; fixed prefix of program-execution-tracing (50 instances); read-only context access, not the paper's full shell-enabled configuration",
+    "subsetSha256": "3311bcac6f3c3cd7e6134a32054782617450843244fd7bca060521d0212c1f55"
+  },
+  "grader": "依据固定 LongHarness score_one 独立实现的精确集合/JSON评分；程序追踪同时要求结果和证据。只读检索或单次完整上下文轨，预算及工具不同于论文全量实验。",
+  "settings": {
+    "browsing": false,
+    "maxAnswerTurns": 24,
+    "freshContextPerTask": true,
+    "sameModelForGrader": false,
+    "profile": "agent",
+    "tools": [
+      "list_directory",
+      "read_file",
+      "search_file"
+    ],
+    "baseTools": [
+      "list_directory",
+      "read_file",
+      "search_file"
+    ],
+    "reasoningEffort": "low",
+    "runTimeoutSeconds": 300,
+    "tokenBudget": 300000,
+    "tokenBudgetScope": "answer",
+    "budgetAccounting": "completed-response",
+    "harness": {
+      "offloadToolResults": true,
+      "toolResultTokenLimit": 4096,
+      "maxModelTurns": 24,
+      "runTimeoutSeconds": 300
+    }
+  },
+  "total": 2,
+  "completed": 2,
+  "cases": [
+    {
+      "id": "program-execution-tracing_00000",
+      "status": "unknown",
+      "elapsedMs": null,
+      "estimatedInputTokens": null,
+      "usage": null,
+      "error": "模型或评分请求失败；此题成绩未知。"
+    },
+    {
+      "id": "program-execution-tracing_00001",
+      "status": "failed",
+      "elapsedMs": 89526,
+      "estimatedInputTokens": 182746,
+      "usage": {
+        "source": "provider",
+        "input": 130685,
+        "output": 593,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 130685
+      },
+      "answer": "{\"answer\":\"{\\\"aa\\\":[\\\"auth\\\",\\\"db\\\",\\\"cache\\\",\\\"jobs\\\",\\\"proxy\\\",\\\"api\\\",\\\"worker\\\",\\\"ui\\\"],\\\"bb\\\":[[\\\"auth\\\",\\\"db\\\"],[\\\"cache\\\",\\\"jobs\\\",\\\"proxy\\\"],[\\\"api\\\",\\\"worker\\\"],[\\\"ui\\\"]],\\\"cc\\\":[\\\"auth\\\",\\\"db\\\"],\\\"dd\\\":8}\",\"evidence\":[44,14,4,13,8,9,16,2]}",
+      "calls": [
+        {
+          "name": "list_directory",
+          "arguments": {}
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "limit": 4000
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "context.md",
+            "query": "['...#..', '#.....', '.###..', '....#.', '..##.#', '#.....']",
+            "limit": 20
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 51000,
+            "limit": 2100
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "context.md",
+            "query": "('AN84', 'edge', 'ready', 17)",
+            "limit": 3
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 15300,
+            "limit": 2500
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "context.md",
+            "query": "['frost'])",
+            "limit": 2
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 4080,
+            "limit": 3100
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "context.md",
+            "query": "('N', 2), ('W', 3)])",
+            "limit": 2
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 8530,
+            "limit": 3800
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "context.md",
+            "query": "('H', 'B')], 'A', 3)",
+            "limit": 2
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 18030,
+            "limit": 1150
+          }
+        }
+      ],
+      "knownUsage": {
+        "source": "provider",
+        "input": 130685,
+        "output": 593,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 130685
+      },
+      "observedTools": [
+        "list_directory",
+        "read_file",
+        "search_file"
+      ],
+      "requestCount": 13,
+      "toolCallCount": 12,
+      "answerExact": false,
+      "evidenceExact": false,
+      "error": "作答字段不符合原题输出结构。"
+    }
+  ],
+  "metrics": {
+    "correct": 0,
+    "incorrect": 1,
+    "notAttempted": 0,
+    "unknown": 1,
+    "graded": 1,
+    "accuracy": 0,
+    "accuracyGivenAttempted": 0,
+    "denominator": "graded cases",
+    "knownInputTokens": 130685,
+    "totalInputTokens": null,
+    "inputUsageUnknown": true,
+    "totalOutputTokens": null,
+    "estimatedInputTokens": null,
+    "elapsedMs": 101177
+  }
+}

@@ -1,13 +1,14 @@
-import type { BenchmarkReport, BenchmarkSuiteId } from '../runtime/benchmarks.js';
-export type { BenchmarkReport, BenchmarkSuiteId };
+import type { BenchmarkReport } from './benchmark-types.js';
+import type { BenchmarkProfile, BenchmarkSuiteId } from './benchmark-catalog.js';
+export type { BenchmarkReport, BenchmarkProfile, BenchmarkSuiteId };
 
 export interface BenchmarkSummary {
   runId: string; suite: BenchmarkSuiteId; model: string; mode: 'live' | 'fixture';
   status: 'completed' | 'cancelled'; completed: number; total: number; accuracy: number | null;
-  graded: number; unknown: number;
+  graded: number; unknown: number; meanReward?: number | null; profile?: BenchmarkProfile; protocolInvalid?: boolean;
 }
 export interface BenchmarkStatus {
-  running?: { runId: string; suite: BenchmarkSuiteId; completed: number; total: number };
+  running?: { runId: string; suite: BenchmarkSuiteId; completed: number; total: number; profile?: BenchmarkProfile };
   reports: BenchmarkSummary[];
 }
 
@@ -208,7 +209,7 @@ export interface BaselineReport {
 
 export type RuntimeEvent =
   | { type: 'runtime.failed'; message: string }
-  | { type: 'benchmark.progress'; runId: string; suite: BenchmarkSuiteId; completed: number; total: number }
+  | { type: 'benchmark.progress'; runId: string; suite: BenchmarkSuiteId; completed: number; total: number; profile?: BenchmarkProfile }
   | { type: 'benchmark.finished'; runId: string; error?: string }
   | { type: 'auth.url'; url: string }
   | { type: 'auth.prompt'; id: string; message: string; placeholder?: string }
@@ -235,7 +236,7 @@ export interface RequestMap {
   'auth.logout': { params: Record<string, never>; result: { loggedOut: boolean } };
   'models.list': { params: Record<string, never>; result: ModelOption[] };
   'models.discover': { params: { providerId?: string; baseUrl?: string; apiKey?: string }; result: ModelCatalog };
-  'benchmark.start': { params: { suite: BenchmarkSuiteId; limit?: number }; result: { runId: string } };
+  'benchmark.start': { params: { suite: BenchmarkSuiteId; limit?: number; profile?: BenchmarkProfile }; result: { runId: string } };
   'benchmark.status': { params: Record<string, never>; result: BenchmarkStatus };
   'benchmark.report': { params: { runId: string }; result: BenchmarkReport };
   'benchmark.cancel': { params: Record<string, never>; result: { cancelled: boolean } };

@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { AgentMessage } from '@earendil-works/pi-agent-core';
 import type { BaselineReport, BenchmarkReport, Organization, Session, Settings } from '../shared/protocol.js';
 import type { RunCheckpoint, SubmissionReceipt } from './checkpoints.js';
+import { benchmarkSuite } from '../shared/benchmark-catalog.js';
 
 export interface StoredSession extends Session {
   version: 1;
@@ -59,7 +60,15 @@ export class Storage {
       if (!/^[\da-f-]{36}\.json$/.test(name)) continue;
       try {
         const report = JSON.parse(await readFile(path.join(this.directory, 'benchmarks', name), 'utf8')) as BenchmarkReport;
-        if (report.mode && Array.isArray(report.cases) && ['bfcl-v4', 'simpleqa'].includes(report.suite)) reports.push({ id: name.slice(0, -5), report });
+        if (['live', 'fixture'].includes(report.mode) && ['completed', 'cancelled'].includes(report.status) && benchmarkSuite(report.suite)
+          && typeof report.measuredAt === 'string' && typeof report.name === 'string' && typeof report.model === 'string'
+          && report.metrics && typeof report.metrics === 'object' && !Array.isArray(report.metrics)
+          && report.settings && typeof report.settings === 'object' && !Array.isArray(report.settings)
+          && (report.settings.tools === undefined || Array.isArray(report.settings.tools) && report.settings.tools.every((tool) => typeof tool === 'string'))
+          && report.source && typeof report.source === 'object' && typeof report.source.upstream === 'string'
+          && Array.isArray(report.cases) && report.cases.every((item) => item && typeof item.id === 'string' && ['passed', 'failed', 'unknown'].includes(item.status))) {
+          reports.push({ id: name.slice(0, -5), report });
+        }
       } catch { /* A damaged evaluation report must not prevent loading the user's conversations. */ }
     }
     return reports.sort((a, b) => b.report.measuredAt.localeCompare(a.report.measuredAt));

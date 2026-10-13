@@ -1,0 +1,191 @@
+{
+  "mode": "official-scorer-on-live-predictions",
+  "revision": "95c54a1646cc486f6702308a1e820cb361960fd4",
+  "scorerSha256": "0a59d0ec8d2a1b9108f277d19260abd2638034ee9a284015f22d90792baa1729",
+  "modelRequestsAdded": 0,
+  "scored": 8,
+  "agreements": 8,
+  "notRescored": 8,
+  "details": [
+    {
+      "report": "longharness-constraint-agent-gpt-6.1-sol-live-v6.json",
+      "id": "constraint-solving-search_00000",
+      "profile": "agent",
+      "localStatus": "failed",
+      "status": "not-rescored-runtime-boundary-or-unknown",
+      "officialExact": null,
+      "agreement": null
+    },
+    {
+      "report": "longharness-constraint-agent-gpt-6.1-sol-live-v6.json",
+      "id": "constraint-solving-search_00001",
+      "profile": "agent",
+      "localStatus": "unknown",
+      "status": "not-rescored-runtime-boundary-or-unknown",
+      "officialExact": null,
+      "agreement": null
+    },
+    {
+      "report": "longharness-constraint-direct-gpt-6.1-sol-live-v6.json",
+      "id": "constraint-solving-search_00000",
+      "profile": "direct",
+      "localStatus": "passed",
+      "status": "rescored",
+      "official": {
+        "answer_exact": true,
+        "exact": true
+      },
+      "officialExact": true,
+      "agreement": true
+    },
+    {
+      "report": "longharness-constraint-direct-gpt-6.1-sol-live-v6.json",
+      "id": "constraint-solving-search_00001",
+      "profile": "direct",
+      "localStatus": "passed",
+      "status": "rescored",
+      "official": {
+        "answer_exact": true,
+        "exact": true
+      },
+      "officialExact": true,
+      "agreement": true
+    },
+    {
+      "report": "longharness-memos-agent-gpt-6.1-sol-live-v6.json",
+      "id": "outlier-memo-detection_00000",
+      "profile": "agent",
+      "localStatus": "failed",
+      "status": "not-rescored-runtime-boundary-or-unknown",
+      "officialExact": null,
+      "agreement": null
+    },
+    {
+      "report": "longharness-memos-agent-gpt-6.1-sol-live-v6.json",
+      "id": "outlier-memo-detection_00001",
+      "profile": "agent",
+      "localStatus": "failed",
+      "status": "not-rescored-runtime-boundary-or-unknown",
+      "officialExact": null,
+      "agreement": null
+    },
+    {
+      "report": "longharness-memos-direct-gpt-6.1-sol-live-v6.json",
+      "id": "outlier-memo-detection_00000",
+      "profile": "direct",
+      "localStatus": "failed",
+      "status": "rescored",
+      "official": {
+        "answer_exact": false,
+        "exact": false
+      },
+      "officialExact": false,
+      "agreement": true
+    },
+    {
+      "report": "longharness-memos-direct-gpt-6.1-sol-live-v6.json",
+      "id": "outlier-memo-detection_00001",
+      "profile": "direct",
+      "localStatus": "failed",
+      "status": "rescored",
+      "official": {
+        "answer_exact": false,
+        "exact": false
+      },
+      "officialExact": false,
+      "agreement": true
+    },
+    {
+      "report": "longharness-pairs-agent-gpt-6.1-sol-live-v6.json",
+      "id": "equivalent-program-pair-search_00000",
+      "profile": "agent",
+      "localStatus": "unknown",
+      "status": "not-rescored-runtime-boundary-or-unknown",
+      "officialExact": null,
+      "agreement": null
+    },
+    {
+      "report": "longharness-pairs-agent-gpt-6.1-sol-live-v6.json",
+      "id": "equivalent-program-pair-search_00001",
+      "profile": "agent",
+      "localStatus": "failed",
+      "status": "not-rescored-runtime-boundary-or-unknown",
+      "officialExact": null,
+      "agreement": null
+    },
+    {
+      "report": "longharness-pairs-direct-gpt-6.1-sol-live-v6.json",
+      "id": "equivalent-program-pair-search_00000",
+      "profile": "direct",
+      "localStatus": "failed",
+      "status": "rescored",
+      "official": {
+        "answer_exact": false,
+        "exact": false,
+        "format_valid": true
+      },
+      "officialExact": false,
+      "agreement": true
+    },
+    {
+      "report": "longharness-pairs-direct-gpt-6.1-sol-live-v6.json",
+      "id": "equivalent-program-pair-search_00001",
+      "profile": "direct",
+      "localStatus": "unknown",
+      "status": "not-rescored-runtime-boundary-or-unknown",
+      "officialExact": null,
+      "agreement": null
+    },
+    {
+      "report": "longharness-tracing-agent-gpt-6.1-sol-live-v6.json",
+      "id": "program-execution-tracing_00000",
+      "profile": "agent",
+      "localStatus": "unknown",
+      "status": "not-rescored-runtime-boundary-or-unknown",
+      "officialExact": null,
+      "agreement": null
+    },
+    {
+      "report": "longharness-tracing-agent-gpt-6.1-sol-live-v6.json",
+      "id": "program-execution-tracing_00001",
+      "profile": "agent",
+      "localStatus": "failed",
+      "status": "rescored",
+      "official": {
+        "answer_exact": true,
+        "evidence_exact": false,
+        "exact": false
+      },
+      "officialExact": false,
+      "agreement": true
+    },
+    {
+      "report": "longharness-tracing-direct-gpt-6.1-sol-live-v6.json",
+      "id": "program-execution-tracing_00000",
+      "profile": "direct",
+      "localStatus": "passed",
+      "status": "rescored",
+      "official": {
+        "answer_exact": true,
+        "evidence_exact": true,
+        "exact": true
+      },
+      "officialExact": true,
+      "agreement": true
+    },
+    {
+      "report": "longharness-tracing-direct-gpt-6.1-sol-live-v6.json",
+      "id": "program-execution-tracing_00001",
+      "profile": "direct",
+      "localStatus": "passed",
+      "status": "rescored",
+      "official": {
+        "answer_exact": true,
+        "evidence_exact": true,
+        "exact": true
+      },
+      "officialExact": true,
+      "agreement": true
+    }
+  ]
+}

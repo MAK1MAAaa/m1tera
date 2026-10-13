@@ -2,8 +2,9 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { RuntimeService } from '../runtime/service.js';
-import { BENCHMARK_SUITES } from '../runtime/benchmarks.js';
-import type { BenchmarkReport, BenchmarkSuiteId } from '../runtime/benchmarks.js';
+import type { BenchmarkReport } from '../runtime/benchmarks.js';
+import { BENCHMARK_SUITES, benchmarkSuite } from '../shared/benchmark-catalog.js';
+import type { BenchmarkProfile, BenchmarkSuiteId } from '../shared/benchmark-catalog.js';
 import { DEFAULT_SETTINGS } from '../shared/protocol.js';
 import type { RuntimeRequest, Settings } from '../shared/protocol.js';
 
@@ -17,19 +18,29 @@ function option(name: string): string | undefined {
 }
 
 async function main() {
-  const allowed = new Set(['--suite', '--limit', '--base-url', '--model', '--api-format', '--output', '--probe', '--help']);
+  const allowed = new Set(['--suite', '--limit', '--profile', '--base-url', '--model', '--api-format', '--output', '--probe', '--help']);
   for (const arg of args) if (arg.startsWith('--') && !allowed.has(arg)) throw new Error('未知命令参数。');
   if (args.includes('--help')) {
-    console.log('用法：node --import tsx scripts/benchmark.ts --suite bfcl-v4|simpleqa|all --limit 20 [--probe] [--output docs/benchmarks]');
+    console.log(`用法：node --import tsx scripts/benchmark.ts --suite ${BENCHMARK_SUITES.map((suite) => suite.id).join('|')}|all [--limit 题数] [--profile agent|direct] [--probe] [--output docs/benchmarks]`);
+    console.log('省略 --limit 时按各评测集默认题数运行；all 中 direct 只适用于 LongHarness，其余评测集保持 agent。');
     console.log('凭据仅从本次进程 M1TERA_BENCHMARK_API_KEY 或 OPENAI_API_KEY 读取，不读取桌面应用或 Codex 凭据。');
     console.log('ChatGPT 订阅账户请在桌面应用中授权后启动评测；本 CLI 使用 OpenAI 兼容接口。');
     return;
   }
   const requested = option('--suite') ?? 'all';
-  if (!['bfcl-v4', 'simpleqa', 'all'].includes(requested)) throw new Error('未知评测集。');
-  const suites: BenchmarkSuiteId[] = requested === 'all' ? ['bfcl-v4', 'simpleqa'] : [requested as BenchmarkSuiteId];
-  const limit = Number(option('--limit') ?? 20);
-  if (!Number.isInteger(limit) || limit < 1 || limit > 20) throw new Error('评测题数必须为 1 至 20 的整数。');
+  if (requested !== 'all' && !benchmarkSuite(requested)) throw new Error('未知评测集。');
+  const suites: BenchmarkSuiteId[] = requested === 'all' ? BENCHMARK_SUITES.map((suite) => suite.id) : [requested as BenchmarkSuiteId];
+  const explicitLimit = option('--limit');
+  const profile = option('--profile') ?? 'agent';
+  if (!['agent', 'direct'].includes(profile)) throw new Error('运行方式必须为 agent 或 direct。');
+  if (profile === 'direct' && requested !== 'all' && !requested.startsWith('longharness-')) throw new Error('完整上下文模式仅适用于 LongHarness。');
+  const selections = suites.map((id) => {
+    const suite = benchmarkSuite(id)!;
+    const limit = explicitLimit === undefined ? suite.defaultLimit : Number(explicitLimit);
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > suite.total) throw new Error(`${suite.name} 的评测题数必须为 1 至 ${suite.total} 的整数。`);
+    const selectedProfile: BenchmarkProfile = id.startsWith('longharness-') ? profile as BenchmarkProfile : 'agent';
+    return { id, limit, profile: selectedProfile };
+  });
   const baseUrl = option('--base-url') ?? process.env.M1TERA_BENCHMARK_BASE_URL ?? 'https://api.openai.com/v1';
   const endpoint = new URL(baseUrl);
   if (!['http:', 'https:'].includes(endpoint.protocol) || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) throw new Error('接口 URL 仅支持不含凭据或查询参数的 HTTP(S) 地址。');
@@ -40,7 +51,7 @@ async function main() {
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(endpoint.hostname);
   const ready = Boolean(apiKey) || local;
   const preflight = { mode: 'preflight', status: ready ? 'configured' : 'blocked', credentialsAvailable: Boolean(apiKey), localEndpoint: local,
-    suites: BENCHMARK_SUITES.filter((suite) => suites.includes(suite.id)).map((suite) => ({ id: suite.id, selectedTasks: limit })),
+    suites: selections.map((suite) => ({ id: suite.id, selectedTasks: suite.limit, profile: suite.profile })),
     scores: null, reason: ready ? '接口配置存在；尚未验证连通性或调用模型。' : '本进程没有可用接口凭据。请从桌面应用的当前登录账户启动评测，或在此进程配置 API key。真实成绩未知。' };
   if (args.includes('--probe') || !ready) {
     console.log(JSON.stringify(preflight, null, 2));
@@ -63,14 +74,18 @@ async function main() {
     await request('settings.set', { settings, ...(apiKey ? { apiKey } : {}) });
     const output = path.resolve(option('--output') ?? 'docs/benchmarks');
     await mkdir(output, { recursive: true });
-    for (const suite of suites) {
-      const started = await request('benchmark.start', { suite, limit }) as { runId: string };
+    for (const selection of selections) {
+      const suite = selection.id;
+      const started = await request('benchmark.start', { suite, limit: selection.limit, profile: selection.profile }) as { runId: string };
       await (service as RuntimeService & { waitForBenchmark(): Promise<void> }).waitForBenchmark();
       const report = await request('benchmark.report', { runId: started.runId }) as BenchmarkReport;
-      const destination = path.join(output, `${suite}-${Date.now()}.json`);
+      const destination = path.join(output, `${suite}-${selection.profile}-${Date.now()}.json`);
       await writeFile(destination, `${JSON.stringify(report, null, 2)}\n`);
       console.log(JSON.stringify({ suite, mode: report.mode, status: report.status, completed: report.completed, total: report.total,
-        graded: report.metrics.graded, unknown: report.metrics.unknown, accuracy: report.metrics.accuracy, denominator: report.metrics.denominator, report: destination }));
+        graded: report.metrics.graded, unknown: report.metrics.unknown, accuracy: report.metrics.accuracy, meanReward: report.metrics.meanReward ?? null,
+        profile: report.settings.profile ?? selection.profile, requestCount: report.metrics.requestCount ?? null, toolCallCount: report.metrics.toolCallCount ?? null,
+        totalInputTokens: report.metrics.totalInputTokens, totalOutputTokens: report.metrics.totalOutputTokens ?? null,
+        denominator: report.metrics.denominator, report: destination }));
       if (report.status === 'cancelled' || report.metrics.unknown > 0) { process.exitCode = 2; break; }
     }
   } finally {

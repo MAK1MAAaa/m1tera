@@ -1,0 +1,371 @@
+{
+  "mode": "live",
+  "status": "completed",
+  "suite": "longharness-memos",
+  "name": "LongHarness 冲突备忘录",
+  "model": "gpt-6.1-sol",
+  "providerId": "chatgpt",
+  "measuredAt": "2026-10-13T05:23:45.031Z",
+  "source": {
+    "revision": "95c54a1646cc486f6702308a1e820cb361960fd4",
+    "upstream": "https://huggingface.co/datasets/StringNLP/longharness/tree/95c54a1646cc486f6702308a1e820cb361960fd4",
+    "license": "未声明；仅下载用于评测，不分发数据",
+    "sourceFileHashes": {
+      "manifest.jsonl": "28b7f2418982db028427f35fd79a119acf83b4a7c254b2ee69c9162e0c01df9a",
+      "DATA_CHECKSUMS.sha256": "e0566948242e72918c760aa42e39c1bbbc38e59f5dbe2f416665da4e77b6f822",
+      "tasks/outlier-memo-detection/contexts/sample-00000.md": "07ae94ead941148280290f014d5cde70859448ec71fe1f93552088d38253f699",
+      "tasks/outlier-memo-detection/answers/sample-00000.json": "7652f016e7c0832c35b52b5c446a46953b1427cd539bd9f0df1415c7c5686396",
+      "tasks/outlier-memo-detection/contexts/sample-00001.md": "4073cffa952a5b3b0ec4e2ff9e73980b1684067c51ae1a3e4108e8ae582d1a81",
+      "tasks/outlier-memo-detection/answers/sample-00001.json": "fbe0256dfe8ed2e955bee755c1ebac289fd7003b5dde6455e04f62b01d316846"
+    },
+    "selectedIds": [
+      "outlier-memo-detection_00000",
+      "outlier-memo-detection_00001"
+    ],
+    "sampling": "Official sample indices 0..1; fixed prefix of outlier-memo-detection (50 instances); read-only context access, not the paper's full shell-enabled configuration",
+    "subsetSha256": "700ee3df9ac3d1cc5005fdc6169f1798fcdc451bae1f0725779d8a2962a86878"
+  },
+  "grader": "依据固定 LongHarness score_one 独立实现的精确集合/JSON评分；程序追踪同时要求结果和证据。只读检索或单次完整上下文轨，预算及工具不同于论文全量实验。",
+  "settings": {
+    "browsing": false,
+    "maxAnswerTurns": 24,
+    "freshContextPerTask": true,
+    "sameModelForGrader": false,
+    "profile": "agent",
+    "tools": [
+      "list_directory",
+      "read_file",
+      "search_file"
+    ],
+    "baseTools": [
+      "list_directory",
+      "read_file",
+      "search_file"
+    ],
+    "reasoningEffort": "low",
+    "runTimeoutSeconds": 300,
+    "tokenBudget": 300000,
+    "tokenBudgetScope": "answer",
+    "budgetAccounting": "completed-response",
+    "harness": {
+      "offloadToolResults": true,
+      "toolResultTokenLimit": 4096,
+      "maxModelTurns": 24,
+      "runTimeoutSeconds": 300
+    }
+  },
+  "total": 2,
+  "completed": 2,
+  "cases": [
+    {
+      "id": "outlier-memo-detection_00000",
+      "status": "failed",
+      "elapsedMs": 91253,
+      "estimatedInputTokens": 497410,
+      "usage": null,
+      "answer": "",
+      "calls": [
+        {
+          "name": "list_directory",
+          "arguments": {}
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "limit": 5000
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 285000,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "search_file",
+          "arguments": {
+            "path": "context.md",
+            "query": "associated with the",
+            "limit": 20
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 5000,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 21384,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 37768,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 54152,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 70536,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 86920,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 103304,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 119688,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 136072,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 152456,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 168840,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 185224,
+            "limit": 16384
+          }
+        }
+      ],
+      "knownUsage": {
+        "source": "provider",
+        "input": 281832,
+        "output": 880,
+        "cacheRead": 54528,
+        "cacheWrite": 0,
+        "totalInput": 336360
+      },
+      "observedTools": [
+        "list_directory",
+        "read_file",
+        "search_file"
+      ],
+      "requestCount": 16,
+      "toolCallCount": 15,
+      "terminationReason": "token-budget",
+      "error": "本题达到运行边界：token-budget；未作为成功作答评分。"
+    },
+    {
+      "id": "outlier-memo-detection_00001",
+      "status": "failed",
+      "elapsedMs": 104529,
+      "estimatedInputTokens": 499847,
+      "usage": null,
+      "answer": "",
+      "calls": [
+        {
+          "name": "list_directory",
+          "arguments": {}
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 16384,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 32768,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 49152,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 65536,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 81920,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 98304,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 114688,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 131072,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 147456,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 163840,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 180224,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 196608,
+            "limit": 16384
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "context.md",
+            "offset": 212992,
+            "limit": 16384
+          }
+        }
+      ],
+      "knownUsage": {
+        "source": "provider",
+        "input": 340159,
+        "output": 1094,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 340159
+      },
+      "observedTools": [
+        "list_directory",
+        "read_file",
+        "search_file"
+      ],
+      "requestCount": 15,
+      "toolCallCount": 14,
+      "terminationReason": "token-budget",
+      "error": "本题达到运行边界：token-budget；未作为成功作答评分。"
+    }
+  ],
+  "metrics": {
+    "correct": 0,
+    "incorrect": 2,
+    "notAttempted": 0,
+    "unknown": 0,
+    "graded": 2,
+    "accuracy": 0,
+    "accuracyGivenAttempted": 0,
+    "denominator": "graded cases",
+    "knownInputTokens": 676519,
+    "totalInputTokens": null,
+    "inputUsageUnknown": true,
+    "totalOutputTokens": null,
+    "estimatedInputTokens": 997257,
+    "requestCount": 31,
+    "toolCallCount": 29,
+    "elapsedMs": 198960
+  }
+}

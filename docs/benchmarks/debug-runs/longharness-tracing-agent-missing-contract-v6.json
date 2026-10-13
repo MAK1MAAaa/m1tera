@@ -1,0 +1,147 @@
+{
+  "mode": "live",
+  "status": "completed",
+  "suite": "longharness-tracing",
+  "name": "LongHarness 程序追踪",
+  "model": "gpt-6.1-sol",
+  "providerId": "chatgpt",
+  "measuredAt": "2026-10-13T05:34:51.919Z",
+  "source": {
+    "revision": "95c54a1646cc486f6702308a1e820cb361960fd4",
+    "upstream": "https://huggingface.co/datasets/StringNLP/longharness/tree/95c54a1646cc486f6702308a1e820cb361960fd4",
+    "license": "未声明；仅下载用于评测，不分发数据",
+    "sourceFileHashes": {
+      "manifest.jsonl": "28b7f2418982db028427f35fd79a119acf83b4a7c254b2ee69c9162e0c01df9a",
+      "DATA_CHECKSUMS.sha256": "e0566948242e72918c760aa42e39c1bbbc38e59f5dbe2f416665da4e77b6f822",
+      "tasks/program-execution-tracing/contexts/sample-00000.md": "0131a30fad824e21ddb07c01619c100db583290788b10d5dd7c228a3470dba1b",
+      "tasks/program-execution-tracing/answers/sample-00000.json": "46078a0c8084273bce39b1d2c068af32d6175beb8af702f90a59b3abe314027e",
+      "tasks/program-execution-tracing/contexts/sample-00001.md": "49589e2e8b3a2b3885dfe6d1c56a4c8f644f67dfdbeece5903498b653a4a834b",
+      "tasks/program-execution-tracing/answers/sample-00001.json": "cb37bd875be5b40f3c63cba0226426e1f259a2e254cd6b4b0dd6d3313404f71b"
+    },
+    "selectedIds": [
+      "program-execution-tracing_00000",
+      "program-execution-tracing_00001"
+    ],
+    "sampling": "Official sample indices 0..1; fixed prefix of program-execution-tracing (50 instances); read-only context access, not the paper's full shell-enabled configuration",
+    "subsetSha256": "3311bcac6f3c3cd7e6134a32054782617450843244fd7bca060521d0212c1f55"
+  },
+  "grader": "依据固定 LongHarness score_one 独立实现的精确集合/JSON评分；程序追踪同时要求结果和证据。只读检索或单次完整上下文轨，预算及工具不同于论文全量实验。",
+  "settings": {
+    "browsing": false,
+    "maxAnswerTurns": 24,
+    "freshContextPerTask": true,
+    "sameModelForGrader": false,
+    "profile": "agent",
+    "tools": [
+      "list_directory",
+      "read_file",
+      "search_file"
+    ],
+    "baseTools": [
+      "list_directory",
+      "read_file",
+      "search_file"
+    ],
+    "reasoningEffort": "low",
+    "runTimeoutSeconds": 300,
+    "tokenBudget": 300000,
+    "tokenBudgetScope": "answer",
+    "budgetAccounting": "completed-response",
+    "harness": {
+      "offloadToolResults": true,
+      "toolResultTokenLimit": 4096,
+      "maxModelTurns": 24,
+      "runTimeoutSeconds": 300
+    }
+  },
+  "total": 2,
+  "completed": 2,
+  "cases": [
+    {
+      "id": "program-execution-tracing_00000",
+      "status": "failed",
+      "elapsedMs": 16106,
+      "estimatedInputTokens": 3116,
+      "usage": {
+        "input": 2768,
+        "output": 343,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 2768,
+        "source": "provider"
+      },
+      "answer": "```json\n{\"aa\":[\"A\",\"B\",\"C\",\"D\",\"E\",\"F\",\"G\",\"H\"],\"bb\":{\"A\":0,\"B\":1,\"C\":1,\"D\":2,\"E\":2,\"F\":2,\"G\":3,\"H\":3},\"cc\":[\"G\",\"H\"],\"dd\":8}\n```",
+      "calls": [],
+      "knownUsage": {
+        "input": 2768,
+        "output": 343,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 2768,
+        "source": "provider"
+      },
+      "observedTools": [
+        "list_directory",
+        "read_file",
+        "search_file"
+      ],
+      "requestCount": 1,
+      "toolCallCount": 0,
+      "answerExact": false,
+      "evidenceExact": false,
+      "error": "作答字段不符合原题输出结构。"
+    },
+    {
+      "id": "program-execution-tracing_00001",
+      "status": "failed",
+      "elapsedMs": 13280,
+      "estimatedInputTokens": 3311,
+      "usage": {
+        "input": 2960,
+        "output": 291,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 2960,
+        "source": "provider"
+      },
+      "answer": "```json\n{\"aa\":[\"auth\",\"db\",\"cache\",\"jobs\",\"proxy\",\"api\",\"worker\",\"ui\"],\"bb\":[[\"auth\",\"db\"],[\"cache\",\"jobs\",\"proxy\"],[\"api\",\"worker\"],[\"ui\"]],\"cc\":[\"auth\",\"db\"],\"dd\":8}\n```",
+      "calls": [],
+      "knownUsage": {
+        "input": 2960,
+        "output": 291,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 2960,
+        "source": "provider"
+      },
+      "observedTools": [
+        "list_directory",
+        "read_file",
+        "search_file"
+      ],
+      "requestCount": 1,
+      "toolCallCount": 0,
+      "answerExact": false,
+      "evidenceExact": false,
+      "error": "作答字段不符合原题输出结构。"
+    }
+  ],
+  "metrics": {
+    "correct": 0,
+    "incorrect": 2,
+    "notAttempted": 0,
+    "unknown": 0,
+    "graded": 2,
+    "accuracy": 0,
+    "accuracyGivenAttempted": 0,
+    "denominator": "graded cases",
+    "knownInputTokens": 5728,
+    "totalInputTokens": 5728,
+    "inputUsageUnknown": false,
+    "totalOutputTokens": 634,
+    "estimatedInputTokens": 6427,
+    "requestCount": 2,
+    "toolCallCount": 0,
+    "elapsedMs": 33120
+  }
+}
