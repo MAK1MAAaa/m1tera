@@ -44,7 +44,7 @@
 
 0.1.0 的 49 / 237 / 957 输入 tokens 和 v0.3 的真实公开客户端搜索仅为历史结果，见 [真实基线](context-baseline-live.md) 与 [v0.3 验证](validation-v3.md)。本轮不把它们作为新目录或多接口流程的真实服务验证。
 
-macOS app 约 217.15 MiB，DMG 约 63.78 MiB，内置 Node 24.21.0。精确大小、SHA256 和 lockfile 摘要见 [产物清单](release-artifacts.json)；[0.3.0 产物](release-artifacts-0.3.0.json) 保留为历史记录。公开签名、公证、其余平台产物和独立无 Node 机器安装仍未验收。
+macOS app 约 217.15 MiB，DMG 约 63.78 MiB，内置 Node 24.21.0。精确大小、SHA256 和 lockfile 摘要见 [0.4.0 产物清单](release-artifacts-0.4.0.json)；[0.3.0 产物](release-artifacts-0.3.0.json) 保留为历史记录。公开签名、公证、其余平台产物和独立无 Node 机器安装仍未验收。
 
 
 ## 独立视觉复核（2026-10-12）

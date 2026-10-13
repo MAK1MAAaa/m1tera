@@ -1,0 +1,85 @@
+{
+  "bfcl-v4": {
+    "revision": "6ea57973c7a6097fd7c5915698c54c17c5b1b6c8",
+    "upstream": "https://github.com/ShishirPatil/gorilla/tree/6ea57973c7a6097fd7c5915698c54c17c5b1b6c8/berkeley-function-call-leaderboard",
+    "license": "Apache-2.0",
+    "sourceFileHashes": {
+      "bfcl_simple_python.json": "82dd63ba502eb2520c6b5d1d9a5c4b590e03ff261565175561f6228a367d1991",
+      "bfcl_simple_python_answers.json": "90cd5bc653690ee8e459b5b3f3fc9458606f7f3fcbf795bb51b7dc581f8c86dc",
+      "bfcl_multiple.json": "aef168155ebd74b7ac2401198b201343bc7d16d7a3d7e0d4e6d8ee82c6969b2a",
+      "bfcl_multiple_answers.json": "244e00ce9395df948bcafc7bee64e8f9c87ef70887587d83cae45b13699f3047",
+      "bfcl_ast_checker.py": "2aae7a68461a8f76c0be3894c8901b66b56967a1989d3ab066051e3fb97f1538",
+      "bfcl_utils.py": "f78fd3edce603b333dc9a88ee2c041dc547d51f71aa449ffebc044c4b1e353f3"
+    },
+    "sampling": "Official first 10 simple_python IDs and first 10 multiple IDs; fixed smoke subset, not random or full BFCL",
+    "selectedIds": [
+      "simple_python_0",
+      "simple_python_1",
+      "simple_python_2",
+      "simple_python_3",
+      "simple_python_4",
+      "simple_python_5",
+      "simple_python_6",
+      "simple_python_7",
+      "simple_python_8",
+      "simple_python_9",
+      "multiple_0",
+      "multiple_1",
+      "multiple_2",
+      "multiple_3",
+      "multiple_4",
+      "multiple_5",
+      "multiple_6",
+      "multiple_7",
+      "multiple_8",
+      "multiple_9"
+    ],
+    "subsetSha256": "278f0333775dd5a7f41fe5aa1a351075c9a99a03c378baab05e2f7052203c708",
+    "sourceFileUrls": {
+      "bfcl_simple_python.json": "https://raw.githubusercontent.com/ShishirPatil/gorilla/6ea57973c7a6097fd7c5915698c54c17c5b1b6c8/berkeley-function-call-leaderboard/bfcl_eval/data/BFCL_v4_simple_python.json",
+      "bfcl_simple_python_answers.json": "https://raw.githubusercontent.com/ShishirPatil/gorilla/6ea57973c7a6097fd7c5915698c54c17c5b1b6c8/berkeley-function-call-leaderboard/bfcl_eval/data/possible_answer/BFCL_v4_simple_python.json",
+      "bfcl_multiple.json": "https://raw.githubusercontent.com/ShishirPatil/gorilla/6ea57973c7a6097fd7c5915698c54c17c5b1b6c8/berkeley-function-call-leaderboard/bfcl_eval/data/BFCL_v4_multiple.json",
+      "bfcl_multiple_answers.json": "https://raw.githubusercontent.com/ShishirPatil/gorilla/6ea57973c7a6097fd7c5915698c54c17c5b1b6c8/berkeley-function-call-leaderboard/bfcl_eval/data/possible_answer/BFCL_v4_multiple.json",
+      "bfcl_ast_checker.py": "https://raw.githubusercontent.com/ShishirPatil/gorilla/6ea57973c7a6097fd7c5915698c54c17c5b1b6c8/berkeley-function-call-leaderboard/bfcl_eval/eval_checker/ast_eval/ast_checker.py",
+      "bfcl_utils.py": "https://raw.githubusercontent.com/ShishirPatil/gorilla/6ea57973c7a6097fd7c5915698c54c17c5b1b6c8/berkeley-function-call-leaderboard/bfcl_eval/model_handler/utils.py"
+    }
+  },
+  "simpleqa": {
+    "revision": "652c89d0ca9df547706735883097e9537d40dc47",
+    "upstream": "https://github.com/openai/simple-evals/tree/652c89d0ca9df547706735883097e9537d40dc47",
+    "license": "MIT",
+    "datasetUrl": "https://openaipublic.blob.core.windows.net/simple-evals/simple_qa_test_set.csv",
+    "sourceFileHashes": {
+      "simpleqa.csv": "feee3f7e7db3617e94e8fcf1977b756ec420ef8568f4e0fcbbe0e92e9d5fc032",
+      "simpleqa_eval.py": "d61a8f97132b29f6fe5d264dd9d619407ea14421525827fabd4cc21162e35c29"
+    },
+    "sampling": "Official Python random.Random(0).sample(examples,20); exact fixed rows retained; smaller runs use its prefix",
+    "selectedIds": [
+      "simpleqa_row_3155",
+      "simpleqa_row_3445",
+      "simpleqa_row_331",
+      "simpleqa_row_2121",
+      "simpleqa_row_4188",
+      "simpleqa_row_3980",
+      "simpleqa_row_3317",
+      "simpleqa_row_2484",
+      "simpleqa_row_3904",
+      "simpleqa_row_2933",
+      "simpleqa_row_1789",
+      "simpleqa_row_4134",
+      "simpleqa_row_1140",
+      "simpleqa_row_2308",
+      "simpleqa_row_1144",
+      "simpleqa_row_776",
+      "simpleqa_row_2052",
+      "simpleqa_row_1203",
+      "simpleqa_row_2540",
+      "simpleqa_row_809"
+    ],
+    "subsetSha256": "f65b2233b7c138f7e68e11d7c92d2b90441a814dc776a3ca46bae31b0616c603",
+    "sourceFileUrls": {
+      "simpleqa.csv": "https://openaipublic.blob.core.windows.net/simple-evals/simple_qa_test_set.csv",
+      "simpleqa_eval.py": "https://raw.githubusercontent.com/openai/simple-evals/652c89d0ca9df547706735883097e9537d40dc47/simpleqa_eval.py"
+    }
+  }
+}

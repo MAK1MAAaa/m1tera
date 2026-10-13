@@ -6,8 +6,9 @@ import { randomUUID } from 'node:crypto';
 import type { AgentTool } from '@earendil-works/pi-agent-core';
 import { Type } from 'typebox';
 import type { ToolName } from '../shared/protocol.js';
+import { MAX_TEXT_PAGE_LIMIT, sliceTextPage, validateTextPage } from './artifacts.js';
 
-const FILE_LIMIT = 128 * 1024;
+const FILE_LIMIT = 8 * 1024 * 1024;
 const OUTPUT_LIMIT = 64 * 1024;
 const WRITE_LIMIT = 1024 * 1024;
 
@@ -54,18 +55,33 @@ function result(text: string) {
   return { content: [{ type: 'text' as const, text }], details: {} };
 }
 
-async function readText(workspace: string, filename: string, signal?: AbortSignal) {
+async function readText(workspace: string, filename: string, offset?: number, limit?: number, signal?: AbortSignal) {
   throwIfAborted(signal);
+  validateTextPage(offset, limit);
   const target = await resolveWorkspacePath(workspace, filename);
   const file = await open(target, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
   try {
-    if (!(await file.stat()).isFile()) throw new Error('只能读取普通文件');
-    const buffer = Buffer.alloc(FILE_LIMIT + 1);
-    const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+    const opened = await file.stat();
+    if (!opened.isFile()) throw new Error('只能读取普通文件');
+    if (opened.size > FILE_LIMIT) throw new Error('分页读取的文件不能超过 8 MiB');
+    const buffer = Buffer.alloc(opened.size + 1);
+    let bytesRead = 0;
+    while (bytesRead < buffer.length) {
+      throwIfAborted(signal);
+      const part = await file.read(buffer, bytesRead, buffer.length - bytesRead, bytesRead);
+      if (!part.bytesRead) break;
+      bytesRead += part.bytesRead;
+    }
     throwIfAborted(signal);
+    if (bytesRead !== opened.size) throw new Error('文件在读取时改变，请重新读取');
     if (buffer.subarray(0, bytesRead).includes(0)) throw new Error('文件包含二进制内容');
-    const text = buffer.subarray(0, Math.min(bytesRead, FILE_LIMIT)).toString('utf8');
-    return text + (bytesRead > FILE_LIMIT ? '\n[文件已截断：最多读取 128 KiB]' : '');
+    let text: string;
+    try { text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(buffer.subarray(0, bytesRead)); }
+    catch { throw new Error('文件不是有效的 UTF-8 文本'); }
+    const currentPath = await resolveWorkspacePath(workspace, filename);
+    const current = await lstat(currentPath);
+    if (currentPath !== target || !current.isFile() || current.dev !== opened.dev || current.ino !== opened.ino || current.size !== opened.size || current.mtimeMs !== opened.mtimeMs) throw new Error('文件在读取时改变，请重新读取');
+    return sliceTextPage(text, offset, limit);
   } finally {
     await file.close();
   }
@@ -158,6 +174,7 @@ export function createTools(names: readonly ToolName[], environment: ToolEnviron
     list_directory: {
       name: 'list_directory', label: '列出目录', description: '列出工作区内目录的直接子项。',
       parameters: Type.Object({ path: Type.String({ description: '相对于工作区的目录路径；根目录使用 .' }) }, { additionalProperties: false }),
+      replay: 'safe',
       execute: async (_id, raw, signal) => {
         const args = raw as { path: string };
         throwIfAborted(signal);
@@ -172,9 +189,15 @@ export function createTools(names: readonly ToolName[], environment: ToolEnviron
       },
     },
     read_file: {
-      name: 'read_file', label: '读取文件', description: '读取工作区内 UTF-8 文本文件，最多 128 KiB。',
-      parameters: Type.Object({ path: Type.String() }, { additionalProperties: false }),
-      execute: async (_id, raw, signal) => result(await readText(environment.workspace, (raw as { path: string }).path, signal)),
+      name: 'read_file', label: '读取文件', description: '分页读取工作区内 UTF-8 文本文件，文件最多 8 MiB。offset 从 0 起，按 Unicode 字符计数；默认读取 4096 字符，每页最多 16384 字符。',
+      parameters: Type.Object({ path: Type.String(), offset: Type.Optional(Type.Integer({ minimum: 0 })), limit: Type.Optional(Type.Integer({ minimum: 1, maximum: MAX_TEXT_PAGE_LIMIT })) }, { additionalProperties: false }),
+      replay: 'safe',
+      execute: async (_id, raw, signal) => {
+        const args = raw as { path: string; offset?: number; limit?: number };
+        const page = await readText(environment.workspace, args.path, args.offset, args.limit, signal);
+        const text = page.text + (page.nextOffset !== null ? `\n[还有内容：使用 read_file(path=${JSON.stringify(args.path)}, offset=${page.nextOffset}) 继续读取]` : '');
+        return { content: [{ type: 'text', text }], details: { path: args.path, offset: page.offset, nextOffset: page.nextOffset, totalCharacters: page.totalCharacters } };
+      },
     },
     write_file: {
       name: 'write_file', label: '写入文件', description: '经用户批准后创建或覆盖工作区内文本文件。父目录必须已存在。',

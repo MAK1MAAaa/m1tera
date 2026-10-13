@@ -150,6 +150,7 @@ export function normalizeModelSettings(settings: Settings, previous?: Settings):
     providerId,
     chatgptModels,
     customProviders,
+    ...(settings.harness ? { harness: settings.harness } : {}),
   };
 }
 

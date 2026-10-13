@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, FolderOpen, LoaderCircle, X } from 'lucide-react';
-import { TOOL_NAMES } from '../../shared/protocol';
-import type { ApprovalMode, AuthStatus, ConfiguredModel, CustomProvider, ModelOption, ProviderStatus, Settings, ToolName } from '../../shared/protocol';
+import { DEFAULT_HARNESS_POLICY, TOOL_NAMES } from '../../shared/protocol';
+import type { ApprovalMode, AuthStatus, ConfiguredModel, CustomProvider, HarnessPolicy, ModelOption, ProviderStatus, Settings, ToolName } from '../../shared/protocol';
 import type { RuntimeClient } from '../lib/runtime-client';
 import { TOOL_LABELS } from '../lib/tools';
 import { useDialogFocus } from './use-dialog-focus';
@@ -34,7 +34,7 @@ function initialDraft(settings: Settings, models: ModelOption[]): Settings {
   const cloneModels = (configured: ConfiguredModel[], id: string) => configured.map((model) => ({ ...model, enabled: model.enabled && !models.some((option) => (option.providerId ?? 'chatgpt') === id && option.id === model.id && option.availability === 'unavailable') }));
   const legacyProvider: CustomProvider = { id: providerId, name: '自定义接口', baseUrl: settings.baseUrl, apiFormat: settings.apiFormat, models: [{ id: settings.model, enabled: true, contextWindow: settings.contextWindow, source: 'manual' }] };
   const providers = settings.customProviders ?? (settings.connection === 'compatible' ? [legacyProvider] : []);
-  return { ...settings, providerId, enabledTools: [...settings.enabledTools], chatgptModels: cloneModels(settings.chatgptModels ?? [{ id: settings.connection === 'chatgpt' ? settings.model : 'gpt-6.1-sol', enabled: true, source: 'endpoint' }], 'chatgpt'), customProviders: providers.map((provider) => ({ ...provider, models: cloneModels(provider.models, provider.id) })) };
+  return { ...settings, providerId, harness: { ...DEFAULT_HARNESS_POLICY, ...settings.harness }, enabledTools: [...settings.enabledTools], chatgptModels: cloneModels(settings.chatgptModels ?? [{ id: settings.connection === 'chatgpt' ? settings.model : 'gpt-6.1-sol', enabled: true, source: 'endpoint' }], 'chatgpt'), customProviders: providers.map((provider) => ({ ...provider, models: cloneModels(provider.models, provider.id) })) };
 }
 
 export function SettingsDialog({ settings, approvalMode, hasApiKey, models, modelsLoading, providerStatus, hasSession, chatgpt, authMessage, runtimeError, onAuth, client, onRefreshModels, onSave, onClose }: Props) {
@@ -48,10 +48,13 @@ export function SettingsDialog({ settings, approvalMode, hasApiKey, models, mode
   const [validation, setValidation] = useState<string | null>(null);
   const dialogRef = useDialogFocus<HTMLElement>(() => { if (!saving) onClose(); });
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) => setDraft((current) => ({ ...current, [key]: value }));
+  const policy = draft.harness ?? DEFAULT_HARNESS_POLICY;
+  const updatePolicy = <K extends keyof HarnessPolicy>(key: K, value: HarnessPolicy[K]) => setDraft((current) => ({ ...current, harness: { ...DEFAULT_HARNESS_POLICY, ...current.harness, [key]: value } }));
   async function save(event: React.FormEvent) {
     event.preventDefault();
     setValidation(null);
     if (manualPending) { setValidation('请先添加或保存正在编辑的模型，或取消该编辑。'); return; }
+    if (!Number.isSafeInteger(policy.toolResultTokenLimit) || policy.toolResultTokenLimit < 512 || policy.toolResultTokenLimit > 32768 || !Number.isSafeInteger(policy.maxModelTurns) || policy.maxModelTurns < 1 || policy.maxModelTurns > 256 || !Number.isSafeInteger(policy.runTimeoutSeconds) || policy.runTimeoutSeconds < 10 || policy.runTimeoutSeconds > 3600) { setValidation('请检查工具结果预算、模型轮数和运行时限的范围。'); return; }
     for (const provider of draft.customProviders ?? []) {
       if (!provider.name.trim()) { setValidation('请输入每个自定义接口的名称。'); return; }
       try {
@@ -91,6 +94,15 @@ export function SettingsDialog({ settings, approvalMode, hasApiKey, models, mode
       <form onSubmit={(event) => void save(event)}>
         <div className="settings-scroll">
           <ModelSettings draft={draft} setDraft={setDraft} apiKeys={apiKeys} setApiKeys={setApiKeys} originalProviders={originalProviders} models={models} modelsLoading={modelsLoading} providerStatus={providerStatus.length ? providerStatus : hasApiKey && draft.connection === 'compatible' ? [{ id: draft.providerId ?? 'custom-default', hasApiKey: true }] : []} chatgpt={chatgpt} authMessage={authMessage} client={client} disabled={saving} onAuth={onAuth} onRefreshModels={onRefreshModels} onDiscoveringChange={setDiscovering} onManualDraftChange={setManualPending} />
+          <div className="settings-divider" />
+          <div className="settings-section-heading">运行与上下文<span>下次运行生效</span></div>
+          <label className="compact-checkbox harness-offload"><input name="offloadToolResults" type="checkbox" checked={policy.offloadToolResults} disabled={saving} onChange={(event) => updatePolicy('offloadToolResults', event.target.checked)} /><span>精简长工具结果<small>原文保留在本地，模型按需读取；下一轮使用摘要和引用。</small></span></label>
+          <div className="harness-policy-fields">
+            <label className="field">工具结果预算（tokens）<input name="toolResultTokenLimit" type="number" min={512} max={32768} step={1} value={policy.toolResultTokenLimit} disabled={saving || !policy.offloadToolResults} onChange={(event) => updatePolicy('toolResultTokenLimit', Number(event.target.value))} /></label>
+            <label className="field">单次任务模型轮数<input name="maxModelTurns" type="number" min={1} max={256} step={1} value={policy.maxModelTurns} disabled={saving} onChange={(event) => updatePolicy('maxModelTurns', Number(event.target.value))} /></label>
+            <label className="field">单次任务时限（秒）<input name="runTimeoutSeconds" type="number" min={10} max={3600} step={1} value={policy.runTimeoutSeconds} disabled={saving} onChange={(event) => updatePolicy('runTimeoutSeconds', Number(event.target.value))} /></label>
+          </div>
+          <p className="helper">达到轮数或时限后暂停，可从已保存状态继续；这些策略不加入系统提示词。</p>
           <div className="settings-divider" />
           <div className="settings-section-heading">系统提示词</div>
           <label className="field"><span className="sr-only">系统提示词</span><textarea name="systemPrompt" rows={4} value={draft.systemPrompt} onChange={(event) => update('systemPrompt', event.target.value)} /></label>

@@ -1,0 +1,152 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 850
+  },
+  "window": {
+    "scrollX": 0,
+    "scrollY": 0
+  },
+  "document": {
+    "x": 0,
+    "y": 0,
+    "width": 1280,
+    "height": 850,
+    "right": 1280,
+    "bottom": 850,
+    "clientWidth": 1280,
+    "clientHeight": 850,
+    "scrollWidth": 1280,
+    "scrollHeight": 850,
+    "scrollTop": 0,
+    "overflowX": "hidden",
+    "overflowY": "hidden",
+    "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+    "fontSize": "16px",
+    "color": "rgb(32, 32, 32)",
+    "background": "rgb(255, 255, 255)"
+  },
+  "body": {
+    "x": 0,
+    "y": 0,
+    "width": 1280,
+    "height": 850,
+    "right": 1280,
+    "bottom": 850,
+    "clientWidth": 1280,
+    "clientHeight": 850,
+    "scrollWidth": 1280,
+    "scrollHeight": 850,
+    "scrollTop": 0,
+    "overflowX": "hidden",
+    "overflowY": "hidden",
+    "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+    "fontSize": "16px",
+    "color": "rgb(32, 32, 32)",
+    "background": "rgba(0, 0, 0, 0)"
+  },
+  "root": {
+    "x": 0,
+    "y": 0,
+    "width": 1280,
+    "height": 850,
+    "right": 1280,
+    "bottom": 850,
+    "clientWidth": 1280,
+    "clientHeight": 850,
+    "scrollWidth": 1280,
+    "scrollHeight": 850,
+    "scrollTop": 0,
+    "overflowX": "hidden",
+    "overflowY": "hidden",
+    "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+    "fontSize": "16px",
+    "color": "rgb(32, 32, 32)",
+    "background": "rgba(0, 0, 0, 0)"
+  },
+  "localStorageLength": 0,
+  "elements": {
+    ".benchmarks-dialog": [
+      {
+        "x": 250,
+        "y": 45,
+        "width": 780,
+        "height": 760,
+        "right": 1030,
+        "bottom": 805,
+        "clientWidth": 778,
+        "clientHeight": 758,
+        "scrollWidth": 778,
+        "scrollHeight": 758,
+        "scrollTop": 0,
+        "overflowX": "hidden",
+        "overflowY": "hidden",
+        "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "16px",
+        "color": "rgb(238, 238, 238)",
+        "background": "rgb(32, 32, 32)"
+      }
+    ],
+    ".benchmarks-scroll": [
+      {
+        "x": 251,
+        "y": 117,
+        "width": 778,
+        "height": 687,
+        "right": 1029,
+        "bottom": 804,
+        "clientWidth": 778,
+        "clientHeight": 687,
+        "scrollWidth": 778,
+        "scrollHeight": 2950,
+        "scrollTop": 1226,
+        "overflowX": "auto",
+        "overflowY": "auto",
+        "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "16px",
+        "color": "rgb(238, 238, 238)",
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    ],
+    ".benchmark-case-detail pre": [
+      {
+        "x": 286,
+        "y": 604.15625,
+        "width": 708,
+        "height": 200,
+        "right": 994,
+        "bottom": 804.15625,
+        "clientWidth": 708,
+        "clientHeight": 200,
+        "scrollWidth": 708,
+        "scrollHeight": 3364,
+        "scrollTop": 0,
+        "overflowX": "auto",
+        "overflowY": "auto",
+        "fontFamily": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+        "fontSize": "11px",
+        "color": "rgb(238, 238, 238)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "x": 286,
+        "y": 905.953125,
+        "width": 708,
+        "height": 18.6875,
+        "right": 994,
+        "bottom": 924.640625,
+        "clientWidth": 708,
+        "clientHeight": 19,
+        "scrollWidth": 708,
+        "scrollHeight": 19,
+        "scrollTop": 0,
+        "overflowX": "auto",
+        "overflowY": "auto",
+        "fontFamily": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+        "fontSize": "11px",
+        "color": "rgb(238, 238, 238)",
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    ]
+  }
+}

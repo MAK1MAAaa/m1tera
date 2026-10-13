@@ -2,12 +2,15 @@ import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/pro
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import type { AgentMessage } from '@earendil-works/pi-agent-core';
-import type { BaselineReport, Organization, Session, Settings } from '../shared/protocol.js';
+import type { BaselineReport, BenchmarkReport, Organization, Session, Settings } from '../shared/protocol.js';
+import type { RunCheckpoint, SubmissionReceipt } from './checkpoints.js';
 
 export interface StoredSession extends Session {
   version: 1;
   agentMessages: AgentMessage[];
   titleSource?: 'automatic' | 'manual';
+  checkpoint?: RunCheckpoint;
+  submissions?: SubmissionReceipt[];
 }
 
 export class Storage {
@@ -16,6 +19,7 @@ export class Storage {
 
   async initialize() {
     await mkdir(path.join(this.directory, 'sessions'), { recursive: true, mode: 0o700 });
+    await mkdir(path.join(this.directory, 'benchmarks'), { recursive: true, mode: 0o700 });
   }
 
   async readSettings(): Promise<unknown> {
@@ -48,6 +52,18 @@ export class Storage {
   saveSettings(settings: Settings) { return this.atomic('settings.json', settings); }
   saveOrganization(organization: Organization) { return this.atomic('organization.json', organization); }
   saveBaseline(report: BaselineReport) { return this.atomic('context-baseline.json', report); }
+  saveBenchmark(id: string, report: BenchmarkReport) { return this.atomic(path.join('benchmarks', `${id}.json`), report); }
+  async readBenchmarks(): Promise<{ id: string; report: BenchmarkReport }[]> {
+    const reports: { id: string; report: BenchmarkReport }[] = [];
+    for (const name of await readdir(path.join(this.directory, 'benchmarks'))) {
+      if (!/^[\da-f-]{36}\.json$/.test(name)) continue;
+      try {
+        const report = JSON.parse(await readFile(path.join(this.directory, 'benchmarks', name), 'utf8')) as BenchmarkReport;
+        if (report.mode && Array.isArray(report.cases) && ['bfcl-v4', 'simpleqa'].includes(report.suite)) reports.push({ id: name.slice(0, -5), report });
+      } catch { /* A damaged evaluation report must not prevent loading the user's conversations. */ }
+    }
+    return reports.sort((a, b) => b.report.measuredAt.localeCompare(a.report.measuredAt));
+  }
   saveSession(session: StoredSession) { return this.atomic(path.join('sessions', `${session.id}.json`), session); }
   deleteSession(id: string) { return this.enqueue(async () => { await unlink(path.join(this.directory, 'sessions', `${id}.json`)).catch((error) => { if (!isMissing(error)) throw error; }); }); }
 
@@ -57,7 +73,7 @@ export class Storage {
       const target = path.join(this.directory, filename);
       const temporary = `${target}.${randomUUID()}.tmp`;
       try {
-        await writeFile(temporary, serialized, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+        await writeFile(temporary, serialized, { encoding: 'utf8', flag: 'wx', mode: 0o600, flush: true });
         await rename(temporary, target);
       } finally { await unlink(temporary).catch(() => {}); }
     });

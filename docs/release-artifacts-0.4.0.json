@@ -1,0 +1,25 @@
+{
+  "platform": "macOS arm64",
+  "version": "0.4.0",
+  "bundledNode": "24.21.0",
+  "publicSigningAndNotarization": false,
+  "runtimeFilesMatched": 26,
+  "packageLockSha256": "3168741be0995c2d6671a8fa01bfb834aea4f43c06ff1bc9594cc7e50c238430",
+  "artifacts": [
+    {
+      "path": "src-tauri/target/release/bundle/dmg/m1tera_0.4.0_aarch64.dmg",
+      "bytes": 66879956,
+      "sha256": "95d9fdedda66f0431cb121736792c2d1d0d67ef1d7964609373c51b7b8304be8"
+    },
+    {
+      "path": "src-tauri/target/release/bundle/macos/m1tera.app/Contents/MacOS/m1tera",
+      "bytes": 13606544,
+      "sha256": "0cc7df767080074f6a83736300692a0fa5e5c2d47627f85b65aca843f7bd3daf"
+    },
+    {
+      "path": "src-tauri/target/release/bundle/macos/m1tera.app/Contents/MacOS/node",
+      "bytes": 122129232,
+      "sha256": "e4b5a3af0e05c75de2eae013904145f40fe7fc2a6e6f17510128bf45cca4e79b"
+    }
+  ]
+}

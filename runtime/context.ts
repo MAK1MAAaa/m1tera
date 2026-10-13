@@ -6,11 +6,22 @@ import type { Model, TranscriptContext, Usage } from '@earendil-works/pi-ai';
 import type { Settings } from '../shared/protocol.js';
 
 const tokenizer = getEncoding('o200k_base');
-const METHOD = 'o200k_base 分项估算，包含保守消息封装开销；实际模型 tokenizer 和服务商封装可能不同。实际 usage 仅首轮，含缓存输入。';
+const METHOD = 'o200k_base 分项估算，长文本分块、超过 64 KiB 使用 UTF-8 字节上界；含保守封装开销。实际 usage 仅首轮，含缓存输入。';
 
 export function countEstimatedTokens(value: unknown): number {
   const text = typeof value === 'string' ? value : JSON.stringify(value ?? '');
-  return tokenizer.encode(text).length;
+  // BPE on very long unbroken Unicode strings can be quadratic. Bound each encoding operation.
+  const bytes = Buffer.byteLength(text, 'utf8');
+  if (bytes > 64 * 1024) return bytes;
+  if (text.length <= 2048) return tokenizer.encode(text).length;
+  let count = 0;
+  for (let start = 0; start < text.length;) {
+    let end = Math.min(start + 512, text.length);
+    if (end < text.length && /[\uD800-\uDBFF]/u.test(text[end - 1]!)) end++;
+    count += tokenizer.encode(text.slice(start, end)).length + 2;
+    start = end;
+  }
+  return count;
 }
 
 export function buildModel(settings: Pick<Settings, 'baseUrl' | 'model' | 'apiFormat'>): Model<'openai-completions' | 'openai-responses'> {

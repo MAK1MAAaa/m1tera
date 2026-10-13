@@ -42,7 +42,7 @@ function mergeCatalog(providerId: string, configured: ConfiguredModel[], catalog
 }
 
 function rowsForProvider(providerId: string, configured: ConfiguredModel[], options: ModelOption[], catalog?: ModelCatalog): ModelOption[] {
-  const directory = catalog?.fetched ? catalog.models : options.filter((option) => modelProvider(option) === providerId);
+  const directory = catalog ? catalog.models : options.filter((option) => modelProvider(option) === providerId);
   const known = new Map(directory.map((option) => [option.id, option]));
   const rows = configured.map((model): ModelOption => {
     const option = known.get(model.id);
@@ -77,7 +77,8 @@ export function ModelSettings({ draft, setDraft, apiKeys, setApiKeys, originalPr
   const busy = disabled || discoveringId !== null;
   const browser = client.transport === 'browser';
   const optionsForProvider = (provider: CustomProvider) => originalProviders.some((original) => original.id === provider.id && original.baseUrl.trim() !== provider.baseUrl.trim()) ? [] : models;
-  const official = rowsForProvider('chatgpt', draft.chatgptModels ?? [], models, catalogs.chatgpt);
+  const officialInventory = chatgpt.connected ? models : models.filter((model) => modelProvider(model) === 'chatgpt' && model.id === 'gpt-6.1-sol').map((model) => ({ ...model, availability: 'unverified' as const, unavailableReason: undefined }));
+  const official = rowsForProvider('chatgpt', draft.chatgptModels ?? [], officialInventory, chatgpt.connected ? catalogs.chatgpt : undefined);
   const currentProviderId = draft.providerId ?? (draft.connection === 'chatgpt' ? 'chatgpt' : 'custom-default');
   const currentProvider = providers.find((provider) => provider.id === currentProviderId);
   const currentRows = currentProviderId === 'chatgpt' ? official : currentProvider ? rowsForProvider(currentProvider.id, currentProvider.models, optionsForProvider(currentProvider), catalogs[currentProvider.id]) : [];
@@ -117,6 +118,12 @@ export function ModelSettings({ draft, setDraft, apiKeys, setApiKeys, originalPr
     setExpandedId(id);
   }
 
+  function changeAccount() {
+    setCatalogs((current) => { const next = { ...current }; delete next.chatgpt; return next; });
+    setWarnings((current) => ({ ...current, chatgpt: undefined }));
+    void onAuth(chatgpt.connected ? 'logout' : chatgpt.loginPending ? 'cancel' : 'login');
+  }
+
   async function discover(providerId: string) {
     const provider = providers.find((item) => item.id === providerId);
     if (provider) {
@@ -136,16 +143,35 @@ export function ModelSettings({ draft, setDraft, apiKeys, setApiKeys, originalPr
         providerId, ...(provider ? { baseUrl: provider.baseUrl.trim(), ...(key !== undefined ? { apiKey: key.trim() } : connectionChanged ? { apiKey: '' } : {}) } : {}),
       });
       setWarnings((current) => ({ ...current, [providerId]: catalog.warning || (!catalog.fetched ? '未能取得模型目录，现有配置已保留。可手动添加模型。' : undefined) }));
-      // A failed discovery must never turn an existing draft into an empty directory.
+      // Preserve metadata and unavailable decisions, but revoke verification on a failed refresh.
       if (catalog.fetched) {
         setCatalogs((current) => ({ ...current, [providerId]: catalog }));
         setDraft((current) => providerId === 'chatgpt' ? { ...current, chatgptModels: mergeCatalog(providerId, current.chatgptModels ?? [], catalog) } : {
           ...current, customProviders: current.customProviders?.map((item) => item.id === providerId ? { ...item, models: mergeCatalog(providerId, item.models, catalog) } : item),
         });
         await onRefreshModels();
-      }
-    } catch (error) { setWarnings((current) => ({ ...current, [providerId]: `${error instanceof Error ? error.message : String(error)} 现有配置已保留。` })); }
+      } else demoteCatalog(providerId, catalog);
+    } catch (error) {
+      const warning = `${error instanceof Error ? error.message : String(error)} 现有配置已保留。`;
+      setWarnings((current) => ({ ...current, [providerId]: warning }));
+      demoteCatalog(providerId, { models: [], fetched: false, warning });
+    }
     finally { setDiscoveringId(null); onDiscoveringChange(false); }
+  }
+
+  function demoteCatalog(providerId: string, failed: ModelCatalog) {
+    const provider = providers.find((item) => item.id === providerId);
+    const configured = providerId === 'chatgpt' ? draft.chatgptModels ?? [] : provider?.models ?? [];
+    const inventory = provider ? optionsForProvider(provider) : models;
+    setCatalogs((current) => {
+      const previous = rowsForProvider(providerId, configured, inventory, current[providerId]);
+      const retained = new Map(previous.map((option) => [option.id, { ...option, availability: option.availability === 'unavailable' ? 'unavailable' as const : 'unverified' as const }]));
+      for (const option of failed.models) {
+        const prior = retained.get(option.id);
+        retained.set(option.id, prior?.availability === 'unavailable' ? prior : { ...prior, ...option, availability: option.availability === 'unavailable' ? 'unavailable' : 'unverified' });
+      }
+      return { ...current, [providerId]: { ...failed, models: [...retained.values()], fetched: false } };
+    });
   }
 
   function updateManual(providerId: string, patch: Partial<ManualDraft>) {
@@ -194,7 +220,7 @@ export function ModelSettings({ draft, setDraft, apiKeys, setApiKeys, originalPr
     <div className="model-provider-panel official-provider">
       <div className="chatgpt-connection">
         <div><strong>{chatgpt.connected ? 'ChatGPT 已连接' : chatgpt.loginPending ? '正在连接 ChatGPT' : '使用你的 ChatGPT 账号'}</strong><p>{authMessage || '通过官方浏览器授权连接，无需填写 API Key。账号凭据仅保留到本次应用退出。'}</p></div>
-        <button type="button" data-dialog-autofocus className={chatgpt.connected || chatgpt.loginPending ? 'secondary-button' : 'primary-button'} disabled={busy || browser} onClick={() => void onAuth(chatgpt.connected ? 'logout' : chatgpt.loginPending ? 'cancel' : 'login')}>{chatgpt.connected ? '注销' : chatgpt.loginPending ? '取消登录' : 'Continue with ChatGPT'}</button>
+        <button type="button" data-dialog-autofocus className={chatgpt.connected || chatgpt.loginPending ? 'secondary-button' : 'primary-button'} disabled={busy || browser} onClick={changeAccount}>{chatgpt.connected ? '注销' : chatgpt.loginPending ? '取消登录' : 'Continue with ChatGPT'}</button>
       </div>
       <div className="model-list-heading"><strong>ChatGPT 模型</strong><button type="button" className="text-button" disabled={busy || browser || modelsLoading} onClick={() => void discover('chatgpt')}>{discoveringId === 'chatgpt' ? <LoaderCircle size={13} className="spin" /> : <RefreshCw size={13} />}拉取模型列表</button></div>
       {!chatgpt.connected && <p className="helper">请先登录以更新此账号的模型目录。未验证模型不代表账号已获得使用权限。</p>}

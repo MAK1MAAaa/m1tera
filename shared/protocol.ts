@@ -1,6 +1,36 @@
+import type { BenchmarkReport, BenchmarkSuiteId } from '../runtime/benchmarks.js';
+export type { BenchmarkReport, BenchmarkSuiteId };
+
+export interface BenchmarkSummary {
+  runId: string; suite: BenchmarkSuiteId; model: string; mode: 'live' | 'fixture';
+  status: 'completed' | 'cancelled'; completed: number; total: number; accuracy: number | null;
+  graded: number; unknown: number;
+}
+export interface BenchmarkStatus {
+  running?: { runId: string; suite: BenchmarkSuiteId; completed: number; total: number };
+  reports: BenchmarkSummary[];
+}
+
 export const TOOL_NAMES = ['list_directory', 'read_file', 'write_file', 'run_command'] as const;
 export type ToolName = typeof TOOL_NAMES[number];
 export type ApprovalMode = 'ask' | 'auto';
+export interface HarnessPolicy {
+  offloadToolResults: boolean;
+  toolResultTokenLimit: number;
+  maxModelTurns: number;
+  runTimeoutSeconds: number;
+}
+export const DEFAULT_HARNESS_POLICY: HarnessPolicy = {
+  offloadToolResults: true, toolResultTokenLimit: 4096, maxModelTurns: 24, runTimeoutSeconds: 300,
+};
+export type RunStatus = 'running' | 'interrupted' | 'paused' | 'completed' | 'cancelled' | 'error';
+export interface RunStateSummary {
+  runId: string;
+  status: RunStatus;
+  modelTurns: number;
+  canResume: boolean;
+  unknownToolCalls: number;
+}
 export type BuiltinCommand = 'plan' | 'websearch';
 export interface ComposerDraft {
   text: string;
@@ -78,6 +108,7 @@ export interface Settings {
   providerId?: string;
   chatgptModels?: ConfiguredModel[];
   customProviders?: CustomProvider[];
+  harness?: HarnessPolicy;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -115,6 +146,7 @@ export interface SessionSummary {
   workspace?: string;
   approvalMode?: ApprovalMode;
   autoSkills?: boolean;
+  runState?: RunStateSummary;
 }
 
 export interface Session extends SessionSummary {
@@ -135,6 +167,8 @@ export interface ContextEstimate {
   attachments?: number;
   skillTokens?: number;
   attachmentTokens?: number;
+  offloadedResults?: number;
+  savedHistoryTokens?: number;
 }
 
 export interface TokenUsage {
@@ -174,6 +208,8 @@ export interface BaselineReport {
 
 export type RuntimeEvent =
   | { type: 'runtime.failed'; message: string }
+  | { type: 'benchmark.progress'; runId: string; suite: BenchmarkSuiteId; completed: number; total: number }
+  | { type: 'benchmark.finished'; runId: string; error?: string }
   | { type: 'auth.url'; url: string }
   | { type: 'auth.prompt'; id: string; message: string; placeholder?: string }
   | { type: 'auth.status'; status: AuthStatus; message?: string }
@@ -199,6 +235,10 @@ export interface RequestMap {
   'auth.logout': { params: Record<string, never>; result: { loggedOut: boolean } };
   'models.list': { params: Record<string, never>; result: ModelOption[] };
   'models.discover': { params: { providerId?: string; baseUrl?: string; apiKey?: string }; result: ModelCatalog };
+  'benchmark.start': { params: { suite: BenchmarkSuiteId; limit?: number }; result: { runId: string } };
+  'benchmark.status': { params: Record<string, never>; result: BenchmarkStatus };
+  'benchmark.report': { params: { runId: string }; result: BenchmarkReport };
+  'benchmark.cancel': { params: Record<string, never>; result: { cancelled: boolean } };
   'organization.get': { params: Record<string, never>; result: Organization };
   'workspaces.create': { params: { path: string; name?: string }; result: Workspace };
   'workspaces.rename': { params: { workspaceId: string; name: string }; result: Workspace };
@@ -217,6 +257,7 @@ export interface RequestMap {
   'sessions.configure': { params: { sessionId: string; enabledTools: ToolName[]; workspace: string; approvalMode?: ApprovalMode; autoSkills?: boolean }; result: Session };
   'sessions.delete': { params: { sessionId: string }; result: { deleted: boolean } };
   'run.start': { params: ComposerDraft & { sessionId: string }; result: { runId: string } };
+  'run.resume': { params: { sessionId: string }; result: { runId: string } };
   'run.cancel': { params: { sessionId: string }; result: { cancelled: boolean } };
   'approval.resolve': { params: { approvalId: string; approved: boolean }; result: { resolved: boolean } };
   'context.preview': { params: Partial<ComposerDraft> & { sessionId?: string }; result: ContextEstimate };

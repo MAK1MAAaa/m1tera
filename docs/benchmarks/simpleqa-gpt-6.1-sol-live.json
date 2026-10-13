@@ -1,0 +1,589 @@
+{
+  "mode": "live",
+  "status": "completed",
+  "suite": "simpleqa",
+  "name": "SimpleQA 事实问答",
+  "model": "gpt-6.1-sol",
+  "providerId": "chatgpt",
+  "measuredAt": "2026-10-13T02:35:14.433Z",
+  "source": {
+    "revision": "652c89d0ca9df547706735883097e9537d40dc47",
+    "upstream": "https://github.com/openai/simple-evals/tree/652c89d0ca9df547706735883097e9537d40dc47",
+    "license": "MIT",
+    "datasetUrl": "https://openaipublic.blob.core.windows.net/simple-evals/simple_qa_test_set.csv",
+    "sourceFileHashes": {
+      "simpleqa.csv": "feee3f7e7db3617e94e8fcf1977b756ec420ef8568f4e0fcbbe0e92e9d5fc032",
+      "simpleqa_eval.py": "d61a8f97132b29f6fe5d264dd9d619407ea14421525827fabd4cc21162e35c29"
+    },
+    "sampling": "Official Python random.Random(0).sample(examples,20); exact fixed rows retained; smaller runs use its prefix",
+    "selectedIds": [
+      "simpleqa_row_3155",
+      "simpleqa_row_3445",
+      "simpleqa_row_331",
+      "simpleqa_row_2121",
+      "simpleqa_row_4188",
+      "simpleqa_row_3980",
+      "simpleqa_row_3317",
+      "simpleqa_row_2484",
+      "simpleqa_row_3904",
+      "simpleqa_row_2933",
+      "simpleqa_row_1789",
+      "simpleqa_row_4134",
+      "simpleqa_row_1140",
+      "simpleqa_row_2308",
+      "simpleqa_row_1144",
+      "simpleqa_row_776",
+      "simpleqa_row_2052",
+      "simpleqa_row_1203",
+      "simpleqa_row_2540",
+      "simpleqa_row_809"
+    ],
+    "subsetSha256": "f65b2233b7c138f7e68e11d7c92d2b90441a814dc776a3ca46bae31b0616c603"
+  },
+  "grader": "原版 OpenAI GRADER_TEMPLATE，答案生成后另一次独立请求；A/B/C。使用同一模型评分，有自评偏差；非官方完整 SimpleQA score。评分响应不合法记未知，绝不默认弃答。",
+  "settings": {
+    "browsing": false,
+    "maxAnswerTurns": 1,
+    "freshContextPerTask": true,
+    "sameModelForGrader": true
+  },
+  "total": 20,
+  "completed": 20,
+  "cases": [
+    {
+      "id": "simpleqa_row_3155",
+      "status": "failed",
+      "elapsedMs": 8235,
+      "estimatedInputTokens": 44,
+      "usage": {
+        "input": 25,
+        "output": 76,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 25,
+        "source": "provider"
+      },
+      "answer": "Muhammad Rafiq Tarar was born in Pirkot, a village in the Gujranwala district of present-day Pakistan.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1405,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1405,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1544,
+      "grade": "INCORRECT"
+    },
+    {
+      "id": "simpleqa_row_3445",
+      "status": "passed",
+      "elapsedMs": 20477,
+      "estimatedInputTokens": 53,
+      "usage": {
+        "input": 34,
+        "output": 291,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 34,
+        "source": "provider"
+      },
+      "answer": "Aniol Serrasolses was **32 years old** when he kayaked down the record-breaking glacial waterfall in Svalbard, Norway.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1412,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1412,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1551,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_331",
+      "status": "passed",
+      "elapsedMs": 10266,
+      "estimatedInputTokens": 49,
+      "usage": {
+        "input": 30,
+        "output": 70,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 30,
+        "source": "provider"
+      },
+      "answer": "**Tanzan Ishibashi** succeeded Ichirō Hatoyama as Japan’s Prime Minister on December 23, 1956. He served until February 25, 1957.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1421,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1421,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1559,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_2121",
+      "status": "failed",
+      "elapsedMs": 17405,
+      "estimatedInputTokens": 49,
+      "usage": {
+        "input": 30,
+        "output": 238,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 30,
+        "source": "provider"
+      },
+      "answer": "Freeman Freeman-Thomas won **437 more votes** than George Sandys—4,149 votes to 3,712.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1405,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1405,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1543,
+      "grade": "INCORRECT"
+    },
+    {
+      "id": "simpleqa_row_4188",
+      "status": "passed",
+      "elapsedMs": 15396,
+      "estimatedInputTokens": 44,
+      "usage": {
+        "input": 25,
+        "output": 60,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 25,
+        "source": "provider"
+      },
+      "answer": "His secretary was **François de Malherbe**, the French poet and critic.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1393,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1393,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1534,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_3980",
+      "status": "passed",
+      "elapsedMs": 16583,
+      "estimatedInputTokens": 40,
+      "usage": {
+        "input": 21,
+        "output": 150,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 21,
+        "source": "provider"
+      },
+      "answer": "Yohji Yamamoto’s mother sold her dressmaking shop in **1972**.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1387,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1387,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1527,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_3317",
+      "status": "passed",
+      "elapsedMs": 11202,
+      "estimatedInputTokens": 50,
+      "usage": {
+        "input": 31,
+        "output": 100,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 31,
+        "source": "provider"
+      },
+      "answer": "The 4th edition of the ASEAN-India Grassroots Innovation Forum (AIGIF) was launched in **Malaysia**, in Langkawi, on 28 November 2023.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1416,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1416,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1555,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_2484",
+      "status": "passed",
+      "elapsedMs": 8197,
+      "estimatedInputTokens": 46,
+      "usage": {
+        "input": 27,
+        "output": 60,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 27,
+        "source": "provider"
+      },
+      "answer": "Junya Watanabe began designing **Tricot Comme des Garçons** in 1987, three years after joining the company.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1403,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1403,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1542,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_3904",
+      "status": "passed",
+      "elapsedMs": 7527,
+      "estimatedInputTokens": 51,
+      "usage": {
+        "input": 31,
+        "output": 35,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 31,
+        "source": "provider"
+      },
+      "answer": "The cannibal in *Outlast: Whistleblower* was **Frank Manera**.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1400,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1400,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1540,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_2933",
+      "status": "passed",
+      "elapsedMs": 15741,
+      "estimatedInputTokens": 48,
+      "usage": {
+        "input": 29,
+        "output": 124,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 29,
+        "source": "provider"
+      },
+      "answer": "Game Network launched in the United Kingdom in May 2001 on **Sky EPG channel 223**.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1399,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1399,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1539,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_1789",
+      "status": "passed",
+      "elapsedMs": 17290,
+      "estimatedInputTokens": 52,
+      "usage": {
+        "input": 32,
+        "output": 232,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 32,
+        "source": "provider"
+      },
+      "answer": "The United States removed Eritrea from the “Counterterror Non-Cooperation List” on **May 28, 2019**.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1415,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1415,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1555,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_4134",
+      "status": "failed",
+      "elapsedMs": 39512,
+      "estimatedInputTokens": 53,
+      "usage": {
+        "input": 34,
+        "output": 495,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 34,
+        "source": "provider"
+      },
+      "answer": "I’m sorry, but I can’t reliably verify the title of disc 2, track 10 of that soundtrack, and I don’t want to give you an incorrect name.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1418,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1418,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1557,
+      "grade": "NOT_ATTEMPTED"
+    },
+    {
+      "id": "simpleqa_row_1140",
+      "status": "passed",
+      "elapsedMs": 18421,
+      "estimatedInputTokens": 42,
+      "usage": {
+        "input": 23,
+        "output": 247,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 23,
+        "source": "provider"
+      },
+      "answer": "Jon Kleinberg became a Fellow of the Association for Computing Machinery (ACM) in **2013**.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1394,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1394,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1533,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_2308",
+      "status": "failed",
+      "elapsedMs": 17040,
+      "estimatedInputTokens": 43,
+      "usage": {
+        "input": 24,
+        "output": 242,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 24,
+        "source": "provider"
+      },
+      "answer": "Bakshi Ghulam Mohammad announced his retirement from politics in **June 1971**.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1393,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1393,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1532,
+      "grade": "INCORRECT"
+    },
+    {
+      "id": "simpleqa_row_1144",
+      "status": "passed",
+      "elapsedMs": 11703,
+      "estimatedInputTokens": 41,
+      "usage": {
+        "input": 22,
+        "output": 105,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 22,
+        "source": "provider"
+      },
+      "answer": "Tarso, Antioquia, Colombia, was founded in **1912**. It became an official municipality in 1936.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1397,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1397,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1536,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_776",
+      "status": "passed",
+      "elapsedMs": 14331,
+      "estimatedInputTokens": 55,
+      "usage": {
+        "input": 36,
+        "output": 146,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 36,
+        "source": "provider"
+      },
+      "answer": "The other composer was **Shohei Tsuchiya**, a member of Taito’s sound team, **Zuntata**.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1413,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1413,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1553,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_2052",
+      "status": "passed",
+      "elapsedMs": 10968,
+      "estimatedInputTokens": 38,
+      "usage": {
+        "input": 19,
+        "output": 85,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 19,
+        "source": "provider"
+      },
+      "answer": "The first female Finance Minister of Zambia was **Edith Zewelani Nawakwi**, who was appointed in 1998.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1398,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1398,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1536,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_1203",
+      "status": "passed",
+      "elapsedMs": 12885,
+      "estimatedInputTokens": 46,
+      "usage": {
+        "input": 27,
+        "output": 98,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 27,
+        "source": "provider"
+      },
+      "answer": "Bil Keane won the National Cartoonists Society’s **Best Syndicated Panel award four times**: in **1981, 1985, 1990, and 1999**.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1414,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1414,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1553,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_2540",
+      "status": "passed",
+      "elapsedMs": 8651,
+      "estimatedInputTokens": 46,
+      "usage": {
+        "input": 27,
+        "output": 53,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 27,
+        "source": "provider"
+      },
+      "answer": "Hong Joon-pyo rejoined the **People Power Party (PPP)** on June 24, 2021.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1400,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1400,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1540,
+      "grade": "CORRECT"
+    },
+    {
+      "id": "simpleqa_row_809",
+      "status": "passed",
+      "elapsedMs": 10826,
+      "estimatedInputTokens": 56,
+      "usage": {
+        "input": 37,
+        "output": 94,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 37,
+        "source": "provider"
+      },
+      "answer": "Apple added the “Hey Siri” voice activation feature in **September 2014**, with the release of iOS 8. Initially, it worked only when the device was connected to power.",
+      "calls": [],
+      "graderUsage": {
+        "input": 1426,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalInput": 1426,
+        "source": "provider"
+      },
+      "graderEstimatedInputTokens": 1566,
+      "grade": "CORRECT"
+    }
+  ],
+  "metrics": {
+    "correct": 16,
+    "incorrect": 3,
+    "notAttempted": 1,
+    "unknown": 0,
+    "graded": 20,
+    "accuracy": 0.8,
+    "accuracyGivenAttempted": 0.8421052631578947,
+    "denominator": "graded cases",
+    "knownInputTokens": 28673,
+    "totalInputTokens": 28673,
+    "inputUsageUnknown": false,
+    "estimatedInputTokens": 31841,
+    "elapsedMs": 292676
+  }
+}

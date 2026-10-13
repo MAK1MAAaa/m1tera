@@ -1,7 +1,7 @@
 {
   "name": "m1tera",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -23,7 +23,9 @@
     "test:e2e": "playwright test",
     "preview": "vite preview",
     "prepare:sidecar": "node scripts/prepare-sidecar.mjs",
-    "verify:upstream": "node scripts/verify-upstream.mjs"
+    "verify:upstream": "node scripts/verify-upstream.mjs",
+    "benchmark": "node --import tsx scripts/benchmark.ts",
+    "benchmark:harness": "node --import tsx scripts/harness-benchmark.ts"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "1.1.0",

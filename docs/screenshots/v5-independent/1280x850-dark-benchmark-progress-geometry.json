@@ -1,0 +1,154 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 850
+  },
+  "window": {
+    "scrollX": 0,
+    "scrollY": 0
+  },
+  "document": {
+    "x": 0,
+    "y": 0,
+    "width": 1280,
+    "height": 850,
+    "right": 1280,
+    "bottom": 850,
+    "clientWidth": 1280,
+    "clientHeight": 850,
+    "scrollWidth": 1280,
+    "scrollHeight": 850,
+    "scrollTop": 0,
+    "overflowX": "hidden",
+    "overflowY": "hidden",
+    "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+    "fontSize": "16px",
+    "color": "rgb(32, 32, 32)",
+    "background": "rgb(255, 255, 255)"
+  },
+  "body": {
+    "x": 0,
+    "y": 0,
+    "width": 1280,
+    "height": 850,
+    "right": 1280,
+    "bottom": 850,
+    "clientWidth": 1280,
+    "clientHeight": 850,
+    "scrollWidth": 1280,
+    "scrollHeight": 850,
+    "scrollTop": 0,
+    "overflowX": "hidden",
+    "overflowY": "hidden",
+    "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+    "fontSize": "16px",
+    "color": "rgb(32, 32, 32)",
+    "background": "rgba(0, 0, 0, 0)"
+  },
+  "root": {
+    "x": 0,
+    "y": 0,
+    "width": 1280,
+    "height": 850,
+    "right": 1280,
+    "bottom": 850,
+    "clientWidth": 1280,
+    "clientHeight": 850,
+    "scrollWidth": 1280,
+    "scrollHeight": 850,
+    "scrollTop": 0,
+    "overflowX": "hidden",
+    "overflowY": "hidden",
+    "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+    "fontSize": "16px",
+    "color": "rgb(32, 32, 32)",
+    "background": "rgba(0, 0, 0, 0)"
+  },
+  "localStorageLength": 0,
+  "elements": {
+    ".benchmarks-dialog": [
+      {
+        "x": 250,
+        "y": 45,
+        "width": 780,
+        "height": 760,
+        "right": 1030,
+        "bottom": 805,
+        "clientWidth": 778,
+        "clientHeight": 758,
+        "scrollWidth": 778,
+        "scrollHeight": 758,
+        "scrollTop": 0,
+        "overflowX": "hidden",
+        "overflowY": "hidden",
+        "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "16px",
+        "color": "rgb(238, 238, 238)",
+        "background": "rgb(32, 32, 32)"
+      }
+    ],
+    ".benchmarks-scroll": [
+      {
+        "x": 251,
+        "y": 117,
+        "width": 778,
+        "height": 687,
+        "right": 1029,
+        "bottom": 804,
+        "clientWidth": 778,
+        "clientHeight": 687,
+        "scrollWidth": 778,
+        "scrollHeight": 687,
+        "scrollTop": 0,
+        "overflowX": "auto",
+        "overflowY": "auto",
+        "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "16px",
+        "color": "rgb(238, 238, 238)",
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    ],
+    ".benchmark-progress": [
+      {
+        "x": 275,
+        "y": 346.1875,
+        "width": 730,
+        "height": 121,
+        "right": 1005,
+        "bottom": 467.1875,
+        "clientWidth": 728,
+        "clientHeight": 119,
+        "scrollWidth": 728,
+        "scrollHeight": 119,
+        "scrollTop": 0,
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "16px",
+        "color": "rgb(238, 238, 238)",
+        "background": "rgb(41, 41, 41)"
+      }
+    ],
+    ".benchmark-progress button": [
+      {
+        "x": 292,
+        "y": 414.1875,
+        "width": 90,
+        "height": 36,
+        "right": 382,
+        "bottom": 450.1875,
+        "clientWidth": 88,
+        "clientHeight": 34,
+        "scrollWidth": 88,
+        "scrollHeight": 34,
+        "scrollTop": 0,
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "11px",
+        "color": "rgb(238, 238, 238)",
+        "background": "rgb(32, 32, 32)"
+      }
+    ]
+  }
+}

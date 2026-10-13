@@ -1,0 +1,290 @@
+{
+  "mode": "official-scorer-on-live-predictions",
+  "suite": "bfcl-v4",
+  "model": "gpt-6.1-sol",
+  "checked_at": "2026-10-13T02:40:32.507486+00:00",
+  "prediction_report_sha256": "f514d63a1b9d41a7defe434821b8a636bac628065e1e00c5bba65dd5a473b6af",
+  "source": {
+    "revision": "6ea57973c7a6097fd7c5915698c54c17c5b1b6c8",
+    "upstream": "https://github.com/ShishirPatil/gorilla/tree/6ea57973c7a6097fd7c5915698c54c17c5b1b6c8/berkeley-function-call-leaderboard",
+    "source_file_hashes": {
+      "bfcl_simple_python.json": "82dd63ba502eb2520c6b5d1d9a5c4b590e03ff261565175561f6228a367d1991",
+      "bfcl_simple_python_answers.json": "90cd5bc653690ee8e459b5b3f3fc9458606f7f3fcbf795bb51b7dc581f8c86dc",
+      "bfcl_multiple.json": "aef168155ebd74b7ac2401198b201343bc7d16d7a3d7e0d4e6d8ee82c6969b2a",
+      "bfcl_multiple_answers.json": "244e00ce9395df948bcafc7bee64e8f9c87ef70887587d83cae45b13699f3047",
+      "bfcl_ast_checker.py": "2aae7a68461a8f76c0be3894c8901b66b56967a1989d3ab066051e3fb97f1538",
+      "bfcl_utils.py": "f78fd3edce603b333dc9a88ee2c041dc547d51f71aa449ffebc044c4b1e353f3"
+    },
+    "subset_sha256": "278f0333775dd5a7f41fe5aa1a351075c9a99a03c378baab05e2f7052203c708",
+    "selected_ids": [
+      "simple_python_0",
+      "simple_python_1",
+      "simple_python_2",
+      "simple_python_3",
+      "simple_python_4",
+      "simple_python_5",
+      "simple_python_6",
+      "simple_python_7",
+      "simple_python_8",
+      "simple_python_9",
+      "multiple_0",
+      "multiple_1",
+      "multiple_2",
+      "multiple_3",
+      "multiple_4",
+      "multiple_5",
+      "multiple_6",
+      "multiple_7",
+      "multiple_8",
+      "multiple_9"
+    ]
+  },
+  "scorer": {
+    "sha256": "2aae7a68461a8f76c0be3894c8901b66b56967a1989d3ab066051e3fb97f1538",
+    "source_url": "https://raw.githubusercontent.com/ShishirPatil/gorilla/6ea57973c7a6097fd7c5915698c54c17c5b1b6c8/berkeley-function-call-leaderboard/bfcl_eval/eval_checker/ast_eval/ast_checker.py",
+    "code_modified": false,
+    "dependency_shim": "Python enum and OpenAI dot-to-underscore registry only; Java/JavaScript paths unavailable"
+  },
+  "scope": {
+    "fixed_subset_only": true,
+    "full_leaderboard_score": false,
+    "inference_calls": 0,
+    "raw_wire_argument_literals_available": false,
+    "note": "Official Python scorer applied to saved normalized calls, not raw API wire arguments; this is a local fixed subset, not a full leaderboard submission"
+  },
+  "metrics": {
+    "correct": 18,
+    "incorrect": 2,
+    "unknown": 0,
+    "graded": 20,
+    "total": 20,
+    "accuracy": 0.9,
+    "denominator": "graded cases"
+  },
+  "local_grader_comparison": {
+    "compared": 20,
+    "agreement_count": 20,
+    "disagreement_ids": [],
+    "all_agree": true
+  },
+  "categories": {
+    "simple_python": {
+      "correct": 10,
+      "incorrect": 0,
+      "unknown": 0,
+      "total": 10
+    },
+    "multiple": {
+      "correct": 8,
+      "incorrect": 2,
+      "unknown": 0,
+      "total": 10
+    }
+  },
+  "cases": [
+    {
+      "id": "simple_python_0",
+      "category": "simple_python",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": null,
+      "agrees_with_local": true
+    },
+    {
+      "id": "simple_python_1",
+      "category": "simple_python",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": "simple_function_checker:unclear",
+      "agrees_with_local": true
+    },
+    {
+      "id": "simple_python_2",
+      "category": "simple_python",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": "simple_function_checker:unclear",
+      "agrees_with_local": true
+    },
+    {
+      "id": "simple_python_3",
+      "category": "simple_python",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": "simple_function_checker:unclear",
+      "agrees_with_local": true
+    },
+    {
+      "id": "simple_python_4",
+      "category": "simple_python",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": "simple_function_checker:unclear",
+      "agrees_with_local": true
+    },
+    {
+      "id": "simple_python_5",
+      "category": "simple_python",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": null,
+      "agrees_with_local": true
+    },
+    {
+      "id": "simple_python_6",
+      "category": "simple_python",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": "simple_function_checker:unclear",
+      "agrees_with_local": true
+    },
+    {
+      "id": "simple_python_7",
+      "category": "simple_python",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": null,
+      "agrees_with_local": true
+    },
+    {
+      "id": "simple_python_8",
+      "category": "simple_python",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": "simple_function_checker:unclear",
+      "agrees_with_local": true
+    },
+    {
+      "id": "simple_python_9",
+      "category": "simple_python",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": null,
+      "agrees_with_local": true
+    },
+    {
+      "id": "multiple_0",
+      "category": "multiple",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": "simple_function_checker:unclear",
+      "agrees_with_local": true
+    },
+    {
+      "id": "multiple_1",
+      "category": "multiple",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": "simple_function_checker:unclear",
+      "agrees_with_local": true
+    },
+    {
+      "id": "multiple_2",
+      "category": "multiple",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": null,
+      "agrees_with_local": true
+    },
+    {
+      "id": "multiple_3",
+      "category": "multiple",
+      "local_status": "failed",
+      "actual_grade": "failed",
+      "passed": false,
+      "errors": [
+        "Invalid value for parameter 'rounding': 4. Expected one of ['', 0]."
+      ],
+      "error_type": "value_error:others",
+      "agrees_with_local": true
+    },
+    {
+      "id": "multiple_4",
+      "category": "multiple",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": "simple_function_checker:unclear",
+      "agrees_with_local": true
+    },
+    {
+      "id": "multiple_5",
+      "category": "multiple",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": null,
+      "agrees_with_local": true
+    },
+    {
+      "id": "multiple_6",
+      "category": "multiple",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": "simple_function_checker:unclear",
+      "agrees_with_local": true
+    },
+    {
+      "id": "multiple_7",
+      "category": "multiple",
+      "local_status": "failed",
+      "actual_grade": "failed",
+      "passed": false,
+      "errors": [
+        "Wrong number of functions."
+      ],
+      "error_type": "multiple_function_checker:wrong_count",
+      "agrees_with_local": true
+    },
+    {
+      "id": "multiple_8",
+      "category": "multiple",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": null,
+      "agrees_with_local": true
+    },
+    {
+      "id": "multiple_9",
+      "category": "multiple",
+      "local_status": "passed",
+      "actual_grade": "passed",
+      "passed": true,
+      "errors": [],
+      "error_type": null,
+      "agrees_with_local": true
+    }
+  ]
+}

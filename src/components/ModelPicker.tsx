@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, LoaderCircle, RefreshCw, Search } from 'lucide-react';
 import type { ModelOption } from '../../shared/protocol';
 interface Props {
@@ -13,6 +13,22 @@ interface Props {
 }
 export function ModelPicker({ models, model, currentProviderId, loading, disabled, onSelect, onRefresh }: Props) {
   const [open, setOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const [maxHeight, setMaxHeight] = useState(400);
+  useLayoutEffect(() => {
+    if (!open || !pickerRef.current) return;
+    const picker = pickerRef.current;
+    const resize = () => {
+      const top = picker.getBoundingClientRect().top;
+      const panelTop = picker.closest('.chat-panel')?.getBoundingClientRect().top ?? 0;
+      setMaxHeight(Math.max(100, Math.min(480, top - Math.max(12, panelTop + 8) - 12)));
+    };
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(picker.closest('.composer-wrap') ?? picker);
+    window.addEventListener('resize', resize);
+    return () => { observer.disconnect(); window.removeEventListener('resize', resize); };
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false); };
@@ -34,15 +50,15 @@ export function ModelPicker({ models, model, currentProviderId, loading, disable
       if (success) { setOpen(false); setQuery(''); }
     } finally { setSelecting(false); }
   }
-  return <div className="composer-picker model-picker">
+  return <div ref={pickerRef} className="composer-picker model-picker">
     <button type="button" className="composer-control model-control" onClick={() => { setOpen(!open); setQuery(''); }} disabled={disabled || selecting} aria-label="选择模型" aria-expanded={open} title={selected ? `${selected.providerName ? `${selected.providerName} · ` : ''}${selected.name || selected.id}` : model ? '当前模型未启用或不可用，请重新选择' : '选择模型'}>{selecting ? <LoaderCircle size={13} className="spin" /> : null}<span>{selected ? `${duplicateIds.has(selected.id) && selected.providerName ? `${selected.providerName} · ` : ''}${selected.name || selected.id}` : '选择模型'}</span><ChevronDown size={12} /></button>
-    {open && !disabled && <><button className="popover-dismiss" type="button" onClick={() => setOpen(false)} aria-label="关闭模型选择" /><section className="model-popover" aria-label="模型选择">
+    {open && !disabled && <><button className="popover-dismiss" type="button" onClick={() => setOpen(false)} aria-label="关闭模型选择" /><section className="model-popover" style={{ maxHeight }} aria-label="模型选择">
       <div className="popover-heading"><strong>选择模型</strong><button type="button" className="icon-button" onClick={() => void onRefresh()} disabled={loading} title="刷新模型列表" aria-label="刷新模型列表">{loading ? <LoaderCircle size={14} className="spin" /> : <RefreshCw size={14} />}</button></div>
       <label className="model-search"><Search size={14} /><input name="modelSearch" aria-label="筛选模型" placeholder="搜索模型或接口" value={query} onChange={(event) => setQuery(event.target.value)} autoFocus /></label>
-      <div className="model-options" role="listbox" aria-label="可用模型">{filtered.map((option) => <button type="button" role="option" aria-selected={isSelected(option)} className="model-option" key={`${option.providerId ?? ''}:${option.id}`} onClick={() => void select(option)} disabled={selecting}><span><strong>{option.name || option.id}</strong><small>{option.providerName ? `${option.providerName} · ` : ''}{option.id}{option.contextWindow ? ` · ${Math.round(option.contextWindow / 1000)}k 上下文` : ''}{option.availability === 'unverified' ? ' · 未验证' : ''}</small></span>{isSelected(option) && <Check size={15} />}</button>)}{!filtered.length && <p className="picker-empty">{available.length ? '没有匹配的模型' : '请在设置中勾选启用模型'}</p>}</div>
+      <div className="model-popover-scroll"><div className="model-options" role="listbox" aria-label="可用模型">{filtered.map((option) => <button type="button" role="option" aria-selected={isSelected(option)} className="model-option" key={`${option.providerId ?? ''}:${option.id}`} onClick={() => void select(option)} disabled={selecting}><span><strong>{option.name || option.id}</strong><small>{option.providerName ? `${option.providerName} · ` : ''}{option.id}{option.contextWindow ? ` · ${Math.round(option.contextWindow / 1000)}k 上下文` : ''}{option.availability === 'unverified' ? ' · 未验证' : ''}</small></span>{isSelected(option) && <Check size={15} />}</button>)}{!filtered.length && <p className="picker-empty">{available.length ? '没有匹配的模型' : '请在设置中勾选启用模型'}</p>}</div>
       {warnings.map((warning) => <p className="picker-note model-warning" role="status" key={warning}>{warning}</p>)}
       {model && !selected && <p className="picker-note">当前模型未启用或不可用，请重新选择。</p>}
-      <p className="picker-note">在设置中管理接口、勾选模型或手动添加模型 ID。</p>
+      <p className="picker-note">在设置中管理接口、勾选模型或手动添加模型 ID。</p></div>
     </section></>}
   </div>;
 }

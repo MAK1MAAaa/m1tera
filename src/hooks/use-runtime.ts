@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_SETTINGS } from '../../shared/protocol';
-import type { Approval, ApprovalMode, AuthStatus, ComposerDraft, ContextEstimate, DisplayMessage, ModelOption, Organization, ProviderStatus, RequestMap, RuntimeEvent, Session, SessionCategory, SessionSummary, Settings, Skill, SkillDraft, SkillSummary, TokenUsage, Workspace, WorkspaceFile } from '../../shared/protocol';
+import type { Approval, ApprovalMode, AuthStatus, BenchmarkReport, BenchmarkStatus, BenchmarkSuiteId, ComposerDraft, ContextEstimate, DisplayMessage, ModelOption, Organization, ProviderStatus, RequestMap, RuntimeEvent, Session, SessionCategory, SessionSummary, Settings, Skill, SkillDraft, SkillSummary, TokenUsage, Workspace, WorkspaceFile } from '../../shared/protocol';
 import type { RuntimeClient } from '../lib/runtime-client';
 
 export interface ActiveTool {
@@ -44,11 +44,18 @@ export function useRuntime(client: RuntimeClient) {
   const [busy, setBusy] = useState(false);
   const [lastStatus, setLastStatus] = useState<Record<string, string>>({});
   const [retryCount, setRetryCount] = useState(0);
+  const [benchmarkStatus, setBenchmarkStatus] = useState<BenchmarkStatus>({ reports: [] });
+  const [benchmarkReport, setBenchmarkReport] = useState<BenchmarkReport>();
+  const [benchmarkReportId, setBenchmarkReportId] = useState<string>();
+  const [benchmarkError, setBenchmarkError] = useState<string | null>(null);
+  const [benchmarksLoading, setBenchmarksLoading] = useState(false);
+  const [benchmarksBusy, setBenchmarksBusy] = useState(false);
   const selectedRef = useRef<string | null>(null);
   const activeRuns = useRef<Record<string, string>>({});
   const contextRevision = useRef<Record<string, number>>({});
   const pendingCreate = useRef<Promise<Session> | null>(null);
   const modelRequest = useRef(0);
+  const benchmarkRequest = useRef(0);
   const draftRequest = useRef(0);
   const lastDraft = useRef<ComposerDraft>({ text: '' });
   const draftTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -90,6 +97,43 @@ export function useRuntime(client: RuntimeClient) {
     finally { setSkillsLoading(false); }
   }, [client]);
 
+  const refreshBenchmarks = useCallback(async () => {
+    if (client.transport === 'browser') return;
+    setBenchmarksLoading(true);
+    try { setBenchmarkStatus(await client.request('benchmark.status', {})); }
+    catch (cause) { setBenchmarkError(errorMessage(cause)); }
+    finally { setBenchmarksLoading(false); }
+  }, [client]);
+
+  const loadBenchmarkReport = useCallback(async (runId: string) => {
+    const generation = ++benchmarkRequest.current;
+    setBenchmarksLoading(true);
+    setBenchmarkError(null);
+    try {
+      const report = await client.request('benchmark.report', { runId });
+      if (generation === benchmarkRequest.current) { setBenchmarkReport(report); setBenchmarkReportId(runId); }
+    } catch (cause) { if (generation === benchmarkRequest.current) setBenchmarkError(errorMessage(cause)); }
+    finally { if (generation === benchmarkRequest.current) setBenchmarksLoading(false); }
+  }, [client]);
+
+  const startBenchmark = useCallback(async (suite: BenchmarkSuiteId, limit: number) => {
+    setBenchmarksBusy(true);
+    setBenchmarkError(null);
+    try {
+      await client.request('benchmark.start', { suite, limit });
+      await refreshBenchmarks();
+      return true;
+    } catch (cause) { setBenchmarkError(errorMessage(cause)); return false; }
+    finally { setBenchmarksBusy(false); }
+  }, [client, refreshBenchmarks]);
+
+  const cancelBenchmark = useCallback(async () => {
+    setBenchmarksBusy(true);
+    try { await client.request('benchmark.cancel', {}); await refreshBenchmarks(); }
+    catch (cause) { setBenchmarkError(errorMessage(cause)); }
+    finally { setBenchmarksBusy(false); }
+  }, [client, refreshBenchmarks]);
+
   const previewDraft = useCallback((draft: ComposerDraft) => {
     lastDraft.current = draft;
     clearTimeout(draftTimer.current);
@@ -128,7 +172,18 @@ export function useRuntime(client: RuntimeClient) {
           setChatgpt({ connected: false, loginPending: false });
           setAuthPrompt(null);
           setAuthMessage(null);
+          setBenchmarkStatus((current) => ({ ...current, running: undefined }));
+          setBenchmarkError(event.message);
           setLastStatus((current) => Object.fromEntries(Object.keys(current).map((id) => [id, '运行时已断开'])));
+          break;
+        case 'benchmark.progress':
+          setBenchmarkStatus((current) => ({ ...current, running: { runId: event.runId, suite: event.suite, completed: event.completed, total: event.total } }));
+          break;
+        case 'benchmark.finished':
+          setBenchmarkStatus((current) => ({ ...current, running: current.running?.runId === event.runId ? undefined : current.running }));
+          if (event.error) setBenchmarkError(event.error);
+          void refreshBenchmarks();
+          if (!event.error) void loadBenchmarkReport(event.runId);
           break;
         case 'auth.url':
           setAuthMessage('在浏览器完成授权。');
@@ -208,7 +263,7 @@ export function useRuntime(client: RuntimeClient) {
         case 'session.updated':
           setSessions((current) => upsertSummary(current, event.session));
           setLoaded((current) => current[event.session.id]
-            ? { ...current, [event.session.id]: { ...current[event.session.id], ...event.session, categoryId: event.session.categoryId, workspaceId: event.session.workspaceId } }
+            ? { ...current, [event.session.id]: { ...current[event.session.id], ...event.session, categoryId: event.session.categoryId, workspaceId: event.session.workspaceId, runState: event.session.runState } }
             : current);
           break;
         case 'run.finished':
@@ -253,7 +308,7 @@ export function useRuntime(client: RuntimeClient) {
     }
     void initialize();
     return () => { disposed = true; unsubscribe?.(); };
-  }, [client, preview, refreshModels, retryCount, storeSession]);
+  }, [client, loadBenchmarkReport, preview, refreshBenchmarks, refreshModels, retryCount, storeSession]);
 
   const selectSession = useCallback(async (id: string) => {
     selectedRef.current = id;
@@ -300,6 +355,19 @@ export function useRuntime(client: RuntimeClient) {
     try { await client.request('run.cancel', { sessionId: selectedRef.current }); }
     catch (cause) { setError(errorMessage(cause)); }
   }, [client]);
+
+  const resume = useCallback(async () => {
+    const sessionId = selectedRef.current;
+    if (!sessionId) return false;
+    setBusy(true);
+    setError(null);
+    try {
+      await client.request('run.resume', { sessionId });
+      storeSession(await client.request('sessions.load', { sessionId }));
+      return true;
+    } catch (cause) { setError(errorMessage(cause)); return false; }
+    finally { setBusy(false); }
+  }, [client, storeSession]);
 
   const saveSettings = useCallback(async (draft: Settings, apiKey?: string, approvalMode?: ApprovalMode, providerApiKeys?: Record<string, string>) => {
     const sessionId = selectedRef.current;
@@ -489,9 +557,11 @@ export function useRuntime(client: RuntimeClient) {
     running: selectedId ? !!runs[selectedId] : false, runs,
     activeTools: selectedId ? tools[selectedId] ?? [] : [],
     status: selectedId ? lastStatus[selectedId] : undefined,
-    approvals, selectSession, newSession, createSession, send, cancel, saveSettings, resolveApproval, deleteSession,
+    approvals, selectSession, newSession, createSession, send, cancel, resume, saveSettings, resolveApproval, deleteSession,
     organization, models, modelsLoading, refreshModels, updateSession, createWorkspace, renameWorkspace, createCategory, selectModel, setApprovalMode,
     skills, skillsLoading, refreshSkills, draftEstimate, previewDraft, listFiles, loadSkill, saveSkill, importSkill, deleteSkill, toggleSkill, setAutoSkills,
+    benchmarkStatus, benchmarkReport, benchmarkReportId, benchmarkError, benchmarksLoading, benchmarksBusy,
+    refreshBenchmarks, loadBenchmarkReport, startBenchmark, cancelBenchmark,
     clearError: () => setError(null),
     retry: () => { setError(null); setRetryCount((current) => current + 1); },
   };

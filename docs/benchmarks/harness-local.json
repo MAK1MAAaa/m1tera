@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "mode": "local-harness",
+  "provider": "in-process scripted OpenAI-compatible SSE fixture",
+  "model": "fixture-local-harness",
+  "generatedAt": "2026-10-13T02:21:27.290Z",
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "node": "v24.21.0"
+  },
+  "tokenMethod": "o200k_base 分项估算，长文本分块、超过 64 KiB 使用 UTF-8 字节上界；含保守封装开销。",
+  "policy": {
+    "offloadToolResults": true,
+    "toolResultTokenLimit": 4096,
+    "maxModelTurns": 24,
+    "runTimeoutSeconds": 300
+  },
+  "providerUsage": null,
+  "firstTurn": [
+    {
+      "toolCount": 0,
+      "request": {
+        "turn": 1,
+        "payloadBytes": 178,
+        "toolNames": [],
+        "estimate": {
+          "system": 0,
+          "history": 25,
+          "tools": 0,
+          "total": 25,
+          "toolCount": 0,
+          "method": "o200k_base 分项估算，长文本分块、超过 64 KiB 使用 UTF-8 字节上界；含保守封装开销。"
+        },
+        "providerUsage": null
+      },
+      "metrics": {
+        "modelTurns": 1,
+        "estimatedInputTokens": 25,
+        "offloadedResults": 0,
+        "savedHistoryTokens": 0
+      },
+      "toolExecutions": {}
+    },
+    {
+      "toolCount": 4,
+      "request": {
+        "turn": 1,
+        "payloadBytes": 1662,
+        "toolNames": [
+          "list_directory",
+          "read_file",
+          "write_file",
+          "run_command"
+        ],
+        "estimate": {
+          "system": 0,
+          "history": 25,
+          "tools": 347,
+          "total": 372,
+          "toolCount": 4,
+          "method": "o200k_base 分项估算，长文本分块、超过 64 KiB 使用 UTF-8 字节上界；含保守封装开销。"
+        },
+        "providerUsage": null
+      },
+      "metrics": {
+        "modelTurns": 1,
+        "estimatedInputTokens": 348,
+        "offloadedResults": 0,
+        "savedHistoryTokens": 0
+      },
+      "toolExecutions": {}
+    }
+  ],
+  "largeToolResult": {
+    "task": "读取 harness-log.txt 的完整日志，找到中间的 MIDDLE_CHECKPOINT 与末尾的 END_STATUS 标记并返回这两个值。",
+    "source": {
+      "kind": "synthetic-log-fixture",
+      "eventRows": 240,
+      "bytes": 35177,
+      "sha256": "ba328f734db4d1c074d7f232f04ab72ceaa605fcc2080d37c31454fc7d3893df"
+    },
+    "raw": {
+      "variant": "raw",
+      "requests": [
+        {
+          "turn": 1,
+          "payloadBytes": 712,
+          "toolNames": [
+            "run_command"
+          ],
+          "estimate": {
+            "system": 0,
+            "history": 54,
+            "tools": 99,
+            "total": 153,
+            "toolCount": 1,
+            "method": "o200k_base 分项估算，长文本分块、超过 64 KiB 使用 UTF-8 字节上界；含保守封装开销。"
+          },
+          "providerUsage": null
+        },
+        {
+          "turn": 2,
+          "payloadBytes": 36382,
+          "toolNames": [
+            "run_command"
+          ],
+          "estimate": {
+            "system": 0,
+            "history": 11621,
+            "tools": 99,
+            "total": 11720,
+            "toolCount": 1,
+            "method": "o200k_base 分项估算，长文本分块、超过 64 KiB 使用 UTF-8 字节上界；含保守封装开销。"
+          },
+          "providerUsage": null
+        }
+      ],
+      "estimatedTotalInput": 11873,
+      "modelRequests": 2,
+      "toolExecutions": {
+        "run_command": 1
+      },
+      "archived": null,
+      "retrieval": null,
+      "finalMarkersPreserved": true,
+      "providerUsage": null,
+      "elapsedMs": 53.07,
+      "metrics": {
+        "modelTurns": 2,
+        "estimatedInputTokens": 11980,
+        "offloadedResults": 0,
+        "savedHistoryTokens": 0
+      }
+    },
+    "optimized": {
+      "variant": "offload",
+      "requests": [
+        {
+          "turn": 1,
+          "payloadBytes": 712,
+          "toolNames": [
+            "run_command"
+          ],
+          "estimate": {
+            "system": 0,
+            "history": 54,
+            "tools": 99,
+            "total": 153,
+            "toolCount": 1,
+            "method": "o200k_base 分项估算，长文本分块、超过 64 KiB 使用 UTF-8 字节上界；含保守封装开销。"
+          },
+          "providerUsage": null
+        },
+        {
+          "turn": 2,
+          "payloadBytes": 2677,
+          "toolNames": [
+            "run_command",
+            "read_artifact"
+          ],
+          "estimate": {
+            "system": 0,
+            "history": 504,
+            "tools": 261,
+            "total": 765,
+            "toolCount": 2,
+            "method": "o200k_base 分项估算，长文本分块、超过 64 KiB 使用 UTF-8 字节上界；含保守封装开销。"
+          },
+          "providerUsage": null
+        },
+        {
+          "turn": 3,
+          "payloadBytes": 4758,
+          "toolNames": [
+            "run_command",
+            "read_artifact"
+          ],
+          "estimate": {
+            "system": 0,
+            "history": 1190,
+            "tools": 261,
+            "total": 1451,
+            "toolCount": 2,
+            "method": "o200k_base 分项估算，长文本分块、超过 64 KiB 使用 UTF-8 字节上界；含保守封装开销。"
+          },
+          "providerUsage": null
+        }
+      ],
+      "estimatedTotalInput": 2369,
+      "modelRequests": 3,
+      "toolExecutions": {
+        "run_command": 1,
+        "read_artifact": 1
+      },
+      "archived": {
+        "bytes": 35177,
+        "sha256": "ba328f734db4d1c074d7f232f04ab72ceaa605fcc2080d37c31454fc7d3893df",
+        "bytesMatch": true,
+        "hashMatches": true
+      },
+      "retrieval": {
+        "correct": true,
+        "offset": 15636,
+        "nextOffset": 17172,
+        "characters": 1536
+      },
+      "finalMarkersPreserved": true,
+      "providerUsage": null,
+      "elapsedMs": 37.02,
+      "metrics": {
+        "modelTurns": 3,
+        "estimatedInputTokens": 2907,
+        "offloadedResults": 1,
+        "savedHistoryTokens": 0
+      }
+    },
+    "estimatedInputSavings": 9504,
+    "estimatedInputSavingsPercent": 80.05
+  },
+  "guards": {
+    "turnLimit": {
+      "configuredMaxTurns": 2,
+      "modelRequests": 2,
+      "toolExecutions": {
+        "list_directory": 2
+      },
+      "stopped": true,
+      "reason": "已达到 2 轮模型请求上限。可检查结果后继续任务。",
+      "providerUsage": null
+    },
+    "checkpoints": [
+      {
+        "stage": "intent",
+        "modelRequests": 1,
+        "writeExecutions": 0,
+        "fileExists": false,
+        "stopped": true,
+        "automaticReplays": 0,
+        "reason": "检查点保存失败，已停止后续操作；请检查存储状态后再继续。",
+        "providerUsage": null
+      },
+      {
+        "stage": "result",
+        "modelRequests": 1,
+        "writeExecutions": 1,
+        "fileExists": true,
+        "stopped": true,
+        "automaticReplays": 0,
+        "reason": "检查点保存失败，已停止后续操作；请检查存储状态后再继续。",
+        "providerUsage": null
+      }
+    ]
+  }
+}

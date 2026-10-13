@@ -1,0 +1,133 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 850
+  },
+  "window": {
+    "scrollX": 0,
+    "scrollY": 0
+  },
+  "document": {
+    "x": 0,
+    "y": 0,
+    "width": 1280,
+    "height": 850,
+    "right": 1280,
+    "bottom": 850,
+    "clientWidth": 1280,
+    "clientHeight": 850,
+    "scrollWidth": 1280,
+    "scrollHeight": 850,
+    "scrollTop": 0,
+    "overflowX": "hidden",
+    "overflowY": "hidden",
+    "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+    "fontSize": "16px",
+    "color": "rgb(32, 32, 32)",
+    "background": "rgb(255, 255, 255)"
+  },
+  "body": {
+    "x": 0,
+    "y": 0,
+    "width": 1280,
+    "height": 850,
+    "right": 1280,
+    "bottom": 850,
+    "clientWidth": 1280,
+    "clientHeight": 850,
+    "scrollWidth": 1280,
+    "scrollHeight": 850,
+    "scrollTop": 0,
+    "overflowX": "hidden",
+    "overflowY": "hidden",
+    "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+    "fontSize": "16px",
+    "color": "rgb(32, 32, 32)",
+    "background": "rgba(0, 0, 0, 0)"
+  },
+  "root": {
+    "x": 0,
+    "y": 0,
+    "width": 1280,
+    "height": 850,
+    "right": 1280,
+    "bottom": 850,
+    "clientWidth": 1280,
+    "clientHeight": 850,
+    "scrollWidth": 1280,
+    "scrollHeight": 850,
+    "scrollTop": 0,
+    "overflowX": "hidden",
+    "overflowY": "hidden",
+    "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+    "fontSize": "16px",
+    "color": "rgb(32, 32, 32)",
+    "background": "rgba(0, 0, 0, 0)"
+  },
+  "localStorageLength": 0,
+  "elements": {
+    ".chat-scroll": [
+      {
+        "x": 236,
+        "y": 60,
+        "width": 1044,
+        "height": 647,
+        "right": 1280,
+        "bottom": 707,
+        "clientWidth": 1044,
+        "clientHeight": 647,
+        "scrollWidth": 1044,
+        "scrollHeight": 5845,
+        "scrollTop": 5198,
+        "overflowX": "auto",
+        "overflowY": "auto",
+        "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "16px",
+        "color": "rgb(32, 32, 32)",
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    ],
+    ".sidebar-scroll": [
+      {
+        "x": 10,
+        "y": 98,
+        "width": 215,
+        "height": 696,
+        "right": 225,
+        "bottom": 794,
+        "clientWidth": 215,
+        "clientHeight": 696,
+        "scrollWidth": 215,
+        "scrollHeight": 1804,
+        "scrollTop": 1108,
+        "overflowX": "auto",
+        "overflowY": "auto",
+        "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "16px",
+        "color": "rgb(32, 32, 32)",
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    ],
+    ".composer": [
+      {
+        "x": 376,
+        "y": 715,
+        "width": 764,
+        "height": 112,
+        "right": 1140,
+        "bottom": 827,
+        "clientWidth": 762,
+        "clientHeight": 110,
+        "scrollWidth": 762,
+        "scrollHeight": 110,
+        "scrollTop": 0,
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "fontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "16px",
+        "color": "rgb(32, 32, 32)",
+        "background": "rgb(245, 245, 245)"
+      }
+    ]
+  }
+}
